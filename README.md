@@ -1,5 +1,18 @@
-# wxWidgets 3.2.7 swpctool
+# Sword World PC Translation Tool
+### and other files
 
-Essentially the minimum project with the src folder set to ./src
+## swpctool
+depends upon wxWidgets
+place this repo in wxWidgets/build-folder/samples/ then
 
-clone in the build-whatever/samples/ folder.
+`$ make`
+
+## swpc-eng.py 
+
+Usage:
+
+`$ python3 ./swpc-eng.py all.d88 disks.d88 to.d88 load.d88`
+
+The first time it is run, a translation database will be built (`translation.dat`). 
+This file will eventually be loaded into the tool for translation work. 
+
