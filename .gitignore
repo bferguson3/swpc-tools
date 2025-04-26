@@ -1,0 +1,5 @@
+.DS_Store
+swpctool
+**.o**
+swpctool.app
+

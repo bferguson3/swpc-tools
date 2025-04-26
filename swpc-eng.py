@@ -128,6 +128,7 @@ if __name__ == "__main__":
 			# write ascii as-is 
 			if (inbytes[i] >= 0x20) and (inbytes[i] < 0x7f):
 				word += chr(inbytes[i])
+				charct += 1
 				badct+=1
 			else:
 				# combine the next two bytes 
@@ -137,8 +138,8 @@ if __name__ == "__main__":
 					try:
 						word += a.decode("shiftjis")
 						badct += 2
+						charct += 2
 						i += 1      # its OK, so skip the next byte
-						charct += 1
 						if inbytes[i+1] == 0x0: # is this the end of the str? 
 							# before we make a new one, check if it exists 
 							skip = False
@@ -165,16 +166,16 @@ if __name__ == "__main__":
 					except UnicodeDecodeError:
 						pass 
 			i += 1
-			charct += 1
+			#charct += 1
 		D += 1
 
 ### 3. Write the output file 
-	outbin = b''
+	outbin = b'TLDAT'
 	i = 0
 	while i < len(word_list):
+		outbin += bytes([(word_list[i].bytect & 0xff00)>>8, (word_list[i].bytect & 0xff)]) + bytes([0]) #' #+ word_list[i].text + "," + str(word_list[i].bytect) + "," + str(word_list[i].bad) + ",[" 
 		outbin += bytes(word_list[i].translation, encoding="shiftjis") + bytes([0]) 
 		outbin += bytes(word_list[i].text, encoding="shiftjis") + bytes([0]) 
-		outbin += bytes([(word_list[i].bytect & 0xff00)>>8, (word_list[i].bytect & 0xff)]) + bytes([0]) #' #+ word_list[i].text + "," + str(word_list[i].bytect) + "," + str(word_list[i].bad) + ",[" 
 		outbin += bytes([word_list[i].bad]) + bytes([0])
 		# length of location list 
 		#print(len(word_list[i].locs), end=" ")
@@ -182,7 +183,7 @@ if __name__ == "__main__":
 		#print(len(word_list[i].locs))
 		_ll = 0
 		while _ll < len(word_list[i].locs):
-			_bt = bytes([word_list[i].locs[_ll].disk, (word_list[i].locs[_ll].address & 0xff000) >> 16, (word_list[i].locs[_ll].address & 0xff00) >> 8, word_list[i].locs[_ll].address & 0xff ])
+			_bt = bytes([word_list[i].locs[_ll].disk, (word_list[i].locs[_ll].address & 0xff0000) >> 16, (word_list[i].locs[_ll].address & 0xff00) >> 8, word_list[i].locs[_ll].address & 0xff ])
 			outbin += _bt
 			#print(_bt)
 			_ll += 1
