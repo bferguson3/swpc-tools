@@ -1,5 +1,4 @@
-# wxWidgets 3.2.7 swpctool
+# Sword World PC Translation Tool
+### and other files
 
-Essentially the minimum project with the src folder set to ./src
-
-clone in the build-whatever/samples/ folder.
+depends upon wxWidgets
