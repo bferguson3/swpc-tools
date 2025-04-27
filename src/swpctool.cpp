@@ -2,7 +2,8 @@
 // Bent's Sword World PC Translation Tool  
 // (c) 2025 @bent86 / @shram86 / @retrodevdiscord
 // CC0 
-//  depends only on wxWidgets
+//  Static dependency on wxWidgets
+//  Library dependency on ICU
 // 
 
 #include "wx/wxprec.h" // includes "wx/wx.h"
@@ -18,6 +19,8 @@
 #include <fstream>
 #include <cstddef>
 #include "convtable.h"
+#include <unicode/unistr.h>
+
 
 #define u8 unsigned char
 
@@ -34,7 +37,10 @@ class Location
 };
 
 Location::Location()
-{}
+{
+    address = 0LU;
+    disk = 0;
+}
 
 Location::Location(unsigned long _address, int _disk)
 {
@@ -62,17 +68,24 @@ class TlWord
 };
 
 TlWord::TlWord()
-{}
+{
+    count = 1u;
+    bytesize = 0lu;
+  
+}
 
 TlWord::TlWord(std::vector<char> _text)
 {
     text = _text;
+    count = 1u;
+    bytesize = strlen(_text.data());
 }
 
 //////
 // taken from @deviantfan@stackoverflow
 // requires convtable.h created by doing:
 //  $ cat SHIFTJIS.TXT | ./jistool >> convtable.bin ; python3 ./convtable.py >> ./src/convtable.h
+/*
     std::string sj2utf8(const std::string &input)
     {
         std::string output(3 * input.length(), ' '); //ShiftJis won't give 4byte UTF8, so max. 3 byte per input char are needed
@@ -122,7 +135,32 @@ TlWord::TlWord(std::vector<char> _text)
         output.resize(indexOutput); //remove the unnecessary bytes
         return output;
     }
-///////
+*/
+
+/// Taken from Kilfu0701@github
+std::string utf8ToSjis(const std::string& value)
+{
+    icu::UnicodeString src(value.c_str(), "utf8");
+    int length = src.extract(0, src.length(), NULL, "shift_jis");
+
+    std::vector<char> result(length + 1);
+    src.extract(0, src.length(), &result[0], "shift_jis");
+
+    return std::string(result.begin(), result.end() - 1);
+}
+
+std::string sjisToUtf8(const std::string& value)
+{
+    icu::UnicodeString src(value.c_str(), "shift_jis");
+    int length = src.extract(0, src.length(), NULL, "utf8");
+
+    std::vector<char> result(length + 1);
+    src.extract(0, src.length(), &result[0], "utf8");
+
+    return std::string(result.begin(), result.end() - 1);
+}
+///
+
 
 // main frame
 class MyFrame : public wxFrame
@@ -144,6 +182,7 @@ class MyFrame : public wxFrame
         std::vector<TlWord> wordList; 
         int curWord;
 
+        bool datLoaded;
 
     private:
         // any class wishing to process wxWidgets events must use this macro!
@@ -214,41 +253,50 @@ void check_null(char c)
 
 void MyFrame::NextWord(wxCommandEvent& event)
 {
-    curWord++;
-    if(curWord == wordList.size()) curWord = 0;
-    UpdateCurrentWord(curWord);
+    if (datLoaded == true)
+    {
+        curWord++;
+        if (curWord == wordList.size()) curWord = 0;
+
+        UpdateCurrentWord(curWord);
+    }
+    else wxLogError("Load a translation file first!");
 }
 
 void MyFrame::PrevWord(wxCommandEvent& event)
 {
-    curWord--;
-    if(curWord == -1) curWord = wordList.size() - 1;
-    UpdateCurrentWord(curWord);
+    if (datLoaded == true) {
+        curWord--;
+        if (curWord == -1) curWord = wordList.size() - 1;
+
+        UpdateCurrentWord(curWord);
+    }
+    else wxLogError("Load a translation file first!");
 }
 
 void MyFrame::UpdateCurrentWord(int wordNum)
 {
-    //std::cout << wxGetApp().lblMainLabel->GetLabel();
     MyApp* app = &wxGetApp();
 
     // set string count label, 
-    std::string s = "Current string: " + std::to_string(wordNum+1) + " / " + std::to_string(wordList.size());
+    std::string s = "Current string: " + std::to_string(wordNum + 1) + " / " + std::to_string(wordList.size());
     app->lblMainLabel->SetLabel(s);
 
     // decode and set tl text 
     // original text box and bytesz label,
-    s = sj2utf8(std::string(wordList[wordNum].text.data()));
-    app->txtOriginalText->ChangeValue(s);
+    s = sjisToUtf8(std::string(wordList[wordNum].text.data()));
+    app->txtOriginalText->ChangeValue(wxString::FromUTF8(s.c_str()));
     app->lblOriginalSizeLabel->SetLabel("Size: " + std::to_string(wordList[wordNum].bytesize));
 
     // tled text box and bytesz label,
-    s = sj2utf8(std::string(wordList[wordNum].translation.data()));
-    app->txtTranslation->ChangeValue(s);
+    s = sjisToUtf8(std::string(wordList[wordNum].translation.data()));
+    app->txtTranslation->ChangeValue(wxString::FromUTF8(s.c_str()));
     app->lblTranslationSize->SetLabel("Size: " + std::to_string(wordList[wordNum].bytesize));
     // < number of duplicates >
 
     // bad flag, ...
     app->chkMarkBad->SetValue(wordList[wordNum].bad);
+
     
 }
 
@@ -260,7 +308,8 @@ void MyFrame::LoadDB(wxCommandEvent& e)
     if (openFileDialog.ShowModal() == wxID_CANCEL)
         return;     
 
-    std::ifstream is (openFileDialog.GetPath(), std::ifstream::binary);
+    std::string path(openFileDialog.GetPath());
+    std::ifstream is (path, std::ios_base::binary);
     if (!is) {
         wxLogError("Cannot open file '%s'.", openFileDialog.GetPath());
         return;
@@ -300,12 +349,14 @@ void MyFrame::LoadDB(wxCommandEvent& e)
         for(unsigned int _sz = 0; _sz < _word.bytesize; _sz += 1){
             _word.text.push_back((u8)buffer[byte_it++]);
         }
-        
+        _word.text.push_back((u8)0); // test zero delim
+
         check_null((u8)buffer[byte_it++]);
 
         for(unsigned int _sz = 0; _sz < _word.bytesize; _sz += 1){
             _word.translation.push_back((u8)buffer[byte_it++]);
         }
+        _word.translation.push_back((u8)0); // test zero delim
 
         check_null((u8)buffer[byte_it++]);
 
@@ -349,6 +400,7 @@ void MyFrame::LoadDB(wxCommandEvent& e)
     this->UpdateCurrentWord(0);
 
     wxMessageDialog* msg = new wxMessageDialog(this, "Database loaded OK!");
+    datLoaded = true;
     msg->ShowModal();
     
 }
@@ -358,6 +410,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title)
     SetIcon(wxICON(sample));
 
     curWord = 0;
+    datLoaded = false;
 
     #if wxUSE_MENUBAR
         wxMenu *fileMenu = new wxMenu;
@@ -385,30 +438,17 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title)
         CreateStatusBar(2); // create a status bar just for fun 
         SetStatusText("Current progress: 0%");
     #endif // wxUSE_STATUSBAR
-    //MyApp* app = &wxGetApp();
-    //app->txtTranslation->Bind(wxEVT_TEXT, &MyFrame::UpdateTlByteCount, this);
+
 }
 
 void MyFrame::UpdateTlByteCount(wxCommandEvent& e)
 {
     MyApp* app = &wxGetApp();
-    int i = 0;
-    //const char* s = std::string(app->txtTranslation->GetValue().c_str()).size();
-    std::string b(app->txtTranslation->GetValue().c_str());
-    int guess = 0;
-    while(i < b.length()){
-        if((u8)b[i] < (u8)128) {
-            guess++;
-            i++;
-        }
-        if((u8)b[i] >= (u8)128) {
-            i+=3;
-            guess+=2; 
-        }
-    }
-    //    i++;
-   // }
-    app->lblTranslationSize->SetLabel("Size: " + std::to_string(guess));
+
+    std::string tmp_u8str = app->txtTranslation->GetValue().ToUTF8();
+    std::string tmp_sjis = utf8ToSjis(tmp_u8str);
+
+    app->lblTranslationSize->SetLabel("Size: " + std::to_string(tmp_sjis.length()));
 }
 
 // event handlers
@@ -431,10 +471,13 @@ bool MyApp::OnInit()
     if ( !wxApp::OnInit() )
         return false; // < exit immediately
 
+    wxLocale* loc = new wxLocale(wxLANGUAGE_JAPANESE);
+    loc->Init(wxLANGUAGE_JAPANESE, wxLOCALE_LOAD_DEFAULT);
+    wxSetlocale(LC_ALL, "jp_JP");
     // create the main application window
     frmMainFrame = new MyFrame("Sword World PC Translation Tool");
     //frmMainFrame->myApp = this;
-    wxSize _sz = wxSize(640,400);
+    wxSize _sz = wxSize(640,440);
     frmMainFrame->SetSize(_sz);
 
     this->pnlMainPanel = new wxPanel(frmMainFrame, wxID_ANY);
