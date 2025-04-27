@@ -44,6 +44,7 @@ class tlword:
 		self.count = 0
 		self.translation = ''
 		self.bad = False
+		self.complete = False
 		self.bytect = 0
 	###
 ###
@@ -177,6 +178,7 @@ if __name__ == "__main__":
 		outbin += bytes(word_list[i].translation, encoding="shiftjis") + bytes([0]) 
 		outbin += bytes(word_list[i].text, encoding="shiftjis") + bytes([0]) 
 		outbin += bytes([word_list[i].bad]) + bytes([0])
+		outbin += bytes([word_list[i].complete]) + bytes([0])
 		# length of location list 
 		#print(len(word_list[i].locs), end=" ")
 		outbin += bytes([len(word_list[i].locs)]) + bytes([0]) # x4 bytes: disc, addr 0xabcdef

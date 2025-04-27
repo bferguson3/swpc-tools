@@ -32,7 +32,7 @@ TOOLCHAIN_FULLNAME = osx_cocoa-unicode-3.2
 EXTRALIBS =   -framework IOKit -framework Carbon -framework Cocoa -framework QuartzCore -framework AudioToolbox -framework System -framework OpenGL  -lz -framework Security -lpthread -liconv -lcurl  
 EXTRALIBS_XML =  -lexpat
 EXTRALIBS_GUI = -framework WebKit
-WX_CPPFLAGS = -I${wx_top_builddir}/lib/wx/include/osx_cocoa-unicode-3.2 -I${top_srcdir}/include -D_FILE_OFFSET_BITS=64 
+WX_CPPFLAGS = -I${wx_top_builddir}/lib/wx/include/osx_cocoa-unicode-3.2 -I/opt/homebrew/Cellar/icu4c@77/77.1/include -I${top_srcdir}/include -D_FILE_OFFSET_BITS=64 
 WX_CXXFLAGS = -Wall -Wundef -Wunused-parameter -Wno-ctor-dtor-privacy -Woverloaded-virtual -Wno-deprecated-declarations -g -O0 -fno-common  -fvisibility=hidden -fvisibility-inlines-hidden
 WX_LDFLAGS = -framework IOKit -framework Carbon -framework Cocoa -framework QuartzCore -framework AudioToolbox -framework System -framework OpenGL 
 HOST_SUFFIX = 
