@@ -3,6 +3,20 @@
 import os,sys,d88
 
 ignore_ranges = [ 
+ (0, 0, 0x8370),
+ (0, 0x8563, 0xedfe),
+ (0, 0x44442, 0x7d5da), 
+ (0, 0x30703, 0x3c61c), 
+ (0, 0x2a028, 0x2eabc), 
+ (0, 0x140ec, 0x1a563), 
+ (0, 0x20400, 0x2f000),
+ (0, 0xa5a22, 0x133d52), 
+ (0, 0x7cfbd, 0x801d5), 
+ (0, 0x7fa9a, 0x7fa9a+1724), 
+ (0, 0xa0668, 0xa4d59),
+ ]
+'''
+ignore_ranges = [ 
 	(0, 0,          0x8800), 
 	(0, 0x8e09,     0xab06), 
 	(0, 0xb770,     0xe002),
@@ -18,7 +32,7 @@ ignore_ranges = [
 	(0, 0xa9c18,    0x138b95),
 	(0, 0x20ed0,    0x291e0)
 	]
-
+'''
 word_list = []
 
 # 813F to 81EE+15
@@ -55,18 +69,18 @@ def load_all_disks():
 	print(numdisks, " disks found")
 	_disks = []
 	while numdisks > 0:
-		f = open(sys.argv[numdisks], "rb")
-		_by = f.read()
-		f.close()
-		#temp = d88.disk(sys.argv[numdisks])
+		#f = open(sys.argv[numdisks], "rb")
+		#_by = f.read()
+		#f.close()
+		temp = d88.disk(sys.argv[numdisks])
 		# append all bytes to the global group
-		inbytes = []
-		#inbytes = temp.HarvestBytes()
+		#inbytes = []
+		inbytes = temp.HarvestBytes()
 		#print(len(inbytes))
-		_i = 0
-		while _i < len(_by):
-			inbytes.append(_by[_i])
-			_i += 1
+		#_i = 0
+		#while _i < len(_by):
+		#	inbytes.append(_by[_i])
+		#	_i += 1
 		_disks.append(inbytes)
 		numdisks -= 1
 	return _disks 
@@ -118,6 +132,7 @@ if __name__ == "__main__":
 		inbytes = disks[D]
 		cur_range = 0
 		word = ''
+		wordisbad = False
 		while i < len(inbytes) - 1:
 			# skip ranges that are defined as code regions
 			_r = 0
@@ -180,14 +195,12 @@ if __name__ == "__main__":
 		outbin += bytes([word_list[i].bad]) + bytes([0])
 		outbin += bytes([word_list[i].complete]) + bytes([0])
 		# length of location list 
-		#print(len(word_list[i].locs), end=" ")
 		outbin += bytes([len(word_list[i].locs)]) + bytes([0]) # x4 bytes: disc, addr 0xabcdef
-		#print(len(word_list[i].locs))
 		_ll = 0
 		while _ll < len(word_list[i].locs):
+			#print(str(word_list[i].locs[_ll].disk) + hex(word_list[i].locs[_ll].address) + " | " + word_list[i].text)
 			_bt = bytes([word_list[i].locs[_ll].disk, (word_list[i].locs[_ll].address & 0xff0000) >> 16, (word_list[i].locs[_ll].address & 0xff00) >> 8, word_list[i].locs[_ll].address & 0xff ])
 			outbin += _bt
-			#print(_bt)
 			_ll += 1
 		outbin += bytes([0x0d, 0x0a])
 		i += 1

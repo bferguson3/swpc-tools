@@ -283,6 +283,8 @@ void MyFrame::LoadDB(wxCommandEvent& e)
         }
     }
 
+    // clean 
+    wordList.clear();
     // parse database 
     // format: 
     //  size[2] \0 trans[size] \0 orig[size] \0 bad[1] \0 locct[1] \0 locations[D[1],addr[3]][locct] \0d \0a
