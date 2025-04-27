@@ -124,7 +124,6 @@ TlWord::TlWord(std::vector<char> _text)
     }
 ///////
 
-
 // main frame
 class MyFrame : public wxFrame
 {
