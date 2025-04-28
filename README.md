@@ -7,7 +7,7 @@
 ## How to use
 - File -> Open to load db file
 - << and >> navigate to next and previous line
-- Commit will save changes on this page to the local db. If you navigate away without committing, your changes WILL be lost!
+- Commit will save changes on ALL PAGES to the local db. If you navigate away without committing, your changes will not be lost. Commit will not work if the byte size of each string does not match. 
 - Mark Bad will flag the string as not having any Japanese text in it, and reinsertion will be skipped.
 - Mark complete will hide this word from subsequent clicks on << and >>
 - Sizes of both strings MUST MATCH. This is the SJIS equivalent byte size!
