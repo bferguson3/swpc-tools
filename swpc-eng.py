@@ -185,6 +185,8 @@ if __name__ == "__main__":
 			#charct += 1
 		D += 1
 
+# TLDAT header
+# bytect[2] \0 transl[bytect] \0 text[bytect] \0 bad[1] \0 complete[1] \0 locct[1] \0 locs[ [disk[1] addr[3]] ][locct] \0d \0a
 ### 3. Write the output file 
 	outbin = b'TLDAT'
 	i = 0
