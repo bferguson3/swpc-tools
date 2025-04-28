@@ -94,7 +94,33 @@ class disk():
 	###
 
 	def ReinsertRawBytes(self, inbytes):
-		return 
+		bc = 0
+		while bc < len(inbytes):
+			tct = len(self.tracks)
+			_t = 0
+			while _t < tct:
+				sct = len(self.tracks[_t].sectors)
+				_s = 0
+				while _s < sct:
+					_bct = len(self.tracks[_t].sectors[_s].bytes)
+					self.tracks[_t].sectors[_s].bytes = []
+					_b = 0
+					while _b < _bct:
+						self.tracks[_t].sectors[_s].bytes.append(inbytes[bc])
+						bc += 1
+						_b += 1
+					_s += 1
+				_t += 1
+			#bc += 1
+		#for t in self.tracks:
+		#	for s in t.sectors:
+		#		for b in s.bytes:
+					#if(type(inbytes[bc]) == 'list'):
+					#	print("wtf")
+		#			b = inbytes[bc]
+		#			bc += 1
+		print(bc, "bytes overwritten.")
+		self.UpdateMasterBytes()
 		# take the input and go sector by sector, replacing all bytes
 		## have error checking!!
 	###
@@ -214,7 +240,7 @@ class disk():
 				newbytes.append((self.tracks[n].sectors[j].bytesize & 0xff00)>>8)
 				x = 0
 				while x < len(self.tracks[n].sectors[j].bytes):
-					newbytes.append(self.tracks[n].sectors[j].bytes) 
+					newbytes.append(self.tracks[n].sectors[j].bytes[x]) 
 					x += 1
 				j += 1
 			n+=1
@@ -357,7 +383,7 @@ class disk():
 		tb = 0
 		while i < len(self.bytes):
 			if(type(self.bytes[i]) == 'str'):
-				tb = bytes([ord(self.bytes[i])])
+				tb = bytes([self.bytes[i]])
 			else:
 				tb = bytes([self.bytes[i]])
 			f.write(tb)
