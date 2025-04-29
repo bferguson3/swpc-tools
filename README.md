@@ -23,6 +23,9 @@ KB Shortcuts:
 
 Version History<br>
 v0.2 - Fixed % display, duplicate count, added kb shortcuts<br>
+- bugfix: no more crash when go to a non-number or blank string #<br>
+- bugfix: goto now goes to appropriate index instead of index + 1<br>
+
 v0.1 - Initial Release<br>
 
 depends upon wxWidgets and ICU<br>
