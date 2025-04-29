@@ -1,4 +1,4 @@
-# Sword World PC Translation Tool
+# Sword World PC Translation Tool v0.2
 ### and other files
 
 ## swpctool
@@ -14,19 +14,28 @@
 - Goto string allows you to select an individual string by index.
 - number of duplicates indicates how many similar lines will be reinserted later.
 
+KB Shortcuts:
+- Ctrl+Right/Left : Next / previous word
+- Ctrl+Enter : Commit all changes
+- Ctrl+G : Goto
+- Ctrl+B : Mark bad
+- Ctrl+C : Mark complete
 
-depends upon wxWidgets and ICU
+Version History<br>
+v0.2 - Fixed % display, duplicate count, added kb shortcuts<br>
+v0.1 - Initial Release<br>
+
+depends upon wxWidgets and ICU<br>
 place this repo in wxWidgets/build-folder/samples/ then
 
 `$ make`
 
-## swpc-eng.py 
-## WARNING: The python tool does not generate a proper translation file. 
+## swpcex.py 
+## WARNING: The python tool does not generate a proper translation file on Windows. 
 ## Only use the translation.dat provided or run it from Linux or OSX.
 Usage:
 
-`$ python3 ./swpc-eng.py all.d88 disks.d88 to.d88 load.d88`
+`$ python3 ./swpc-eng.py disk.d88`
 
-The first time it is run, a translation database will be built (`translation.dat`). 
-This file will eventually be loaded into the tool for translation work. 
-
+This will create a translation.dat file which contains all found words. <br>
+Note this tool must be modified internally for use with other disks. 
