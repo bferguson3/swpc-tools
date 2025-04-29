@@ -178,9 +178,13 @@ void PickStringFrame::Confirm(wxCommandEvent& event)
         wxLogError("Load a translation file first!");
         return;
     }
-    myf->UpdateCurrentWord(std::stoi(std::string(app->frmStrFrame->txtStringSel->GetValue())));
-    app->frmStrFrame = NULL;
-    Close(true);
+    try { 
+        myf->UpdateCurrentWord(std::stoi(std::string(app->frmStrFrame->txtStringSel->GetValue())) - 1);
+        app->frmStrFrame = NULL;
+        Close(true);
+    } catch(...) { 
+        wxLogError("Not a valid string");
+    }
 }
 
 
@@ -282,7 +286,7 @@ void MyFrame::UpdateCurrentWord(int wordNum)
     std::string tmp_sjis = utf8ToSjis(tmp_u8str);
     app->lblTranslationSize->SetLabel("Size: " + std::to_string(tmp_sjis.length()));
     // < number of duplicates >
-
+    app->lblDuplicates->SetLabel("Duplicates: " + std::to_string(wordList[wordNum].locs.size()-1));
     // bad flag, ...
     app->chkMarkBad->SetValue(wordList[wordNum].bad);
     app->chkMarkComplete->SetValue(wordList[wordNum].complete);
@@ -571,10 +575,19 @@ void MyFrame::CommitChanges(wxCommandEvent& WXUNUSED(e))
 
     std::ofstream os(currentFilePath, std::ios_base::binary);
     if (!os) { wxLogError("Cannot write to DB!\nIs it read only?"); return; }
-    //for(int j = 0; j < outbytes.size(); j++){
     os.write(outbytes.data(), outbytes.size());
-    //}
     os.close();
+
+    // update %
+    int tc = 0;
+    for(int i = 0; i < wordList.size(); i++){
+        if(wordList[i].complete==true) tc++;
+    }
+    float pct = (float)tc;
+    float den = (float)wordList.size();
+    pct = (pct / den) * 100.0f;
+    int _p = (int)(pct);
+    SetStatusText("Current progress: " + std::to_string(_p) + "%");
 
     wxLogError("Complete");
 }
@@ -641,3 +654,55 @@ bool MyApp::OnInit()
     return true;
 }
 
+
+int MyApp::FilterEvent(wxEvent& event) {
+    if (event.GetEventType() == wxEVT_KEY_DOWN) {
+        wxKeyEvent& keyEvent = static_cast<wxKeyEvent&>(event);
+        //wxLogMessage("Key pressed: %d", keyEvent.GetKeyCode());
+        if(keyEvent.GetKeyCode() == 308){
+            shiftKey = true;
+        }
+        if(keyEvent.GetKeyCode() == 314){
+            if(shiftKey)
+                frmMainFrame->PrevWord(static_cast<wxCommandEvent&>(event));
+        }
+        else if(keyEvent.GetKeyCode() == 316){
+            if(shiftKey)
+                frmMainFrame->NextWord(static_cast<wxCommandEvent&>(event));
+        }
+        else if(keyEvent.GetKeyCode() == 66){//b = 66
+            if(shiftKey)
+                if(frmMainFrame->datLoaded){
+                    chkMarkBad->SetValue(!chkMarkBad->GetValue());
+                    frmMainFrame->SetBad(static_cast<wxCommandEvent&>(event));
+                }
+        }
+        else if(keyEvent.GetKeyCode() == 67){//c
+            if(shiftKey)
+                if(frmMainFrame->datLoaded){
+                    chkMarkComplete->SetValue(!chkMarkComplete->GetValue());
+                    frmMainFrame->SetComplete(static_cast<wxCommandEvent&>(event));
+                }
+        }
+        else if(keyEvent.GetKeyCode() == 13){//enter
+            if(shiftKey)
+                if(frmMainFrame->datLoaded)
+                    frmMainFrame->CommitChanges(static_cast<wxCommandEvent&>(event));
+        }
+        else if (keyEvent.GetKeyCode() == 71){//g = 71
+            if(shiftKey)
+                if(frmMainFrame->datLoaded)
+                    frmMainFrame->OpenStrSel(static_cast<wxCommandEvent&>(event));
+        }
+        
+        //else if(keyEvent.GetKeyCode() == )
+    }
+    if (event.GetEventType() == wxEVT_KEY_UP) {
+        wxKeyEvent& keyEvent = static_cast<wxKeyEvent&>(event);
+        //wxLogMessage("Key pressed: %d", keyEvent.GetKeyCode());
+        if(keyEvent.GetKeyCode() == 308){
+            shiftKey = false;
+        }
+    }
+    return wxApp::FilterEvent(event);
+}

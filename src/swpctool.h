@@ -113,6 +113,7 @@ class MyApp : public wxApp
     public:
         // return: if OnInit() returns false, the application terminates)
         virtual bool OnInit() wxOVERRIDE;
+        int FilterEvent(wxEvent& event) override;
 
         MyFrame* frmMainFrame;
         wxPanel* pnlMainPanel;
@@ -133,6 +134,8 @@ class MyApp : public wxApp
         wxButton* btnNext;
         wxButton* btnCommit;
         wxButton* btnSelectString;
+
+        bool shiftKey = false;
 
 };
 
