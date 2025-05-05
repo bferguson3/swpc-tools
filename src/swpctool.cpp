@@ -95,6 +95,51 @@ TlWord::TlWord(std::vector<char> _text)
     }
 */
 
+std::string ReplaceString(std::string subject, const std::string& search,
+    const std::string& replace) {
+    size_t pos = 0;
+    while((pos = subject.find(search, pos)) != std::string::npos) {
+        subject.replace(pos, search.length(), replace);
+        pos += replace.length();
+    }
+    return subject;
+}
+
+std::string ReplaceString(std::string subject, const char search,
+    const std::string& replace) {
+    size_t pos = 0;
+    while((pos = subject.find(search, pos)) != std::string::npos) {
+        subject.replace(pos, 1, replace);
+        pos += replace.length();
+    }
+    return subject;
+}
+
+std::string addNewlines(const std::string& text, int x) {
+    std::string result = "";
+    for (size_t i = 0; i < text.length(); ++i) {
+      result += text[i];
+      if ((i + 1) % x == 0) {
+        result += '\n';
+      }
+    }
+    return result;
+  }
+
+std::vector<std::string> split(std::string s, std::string delimiter) {
+    std::vector<std::string> tokens;
+    size_t pos = 0;
+    std::string token;
+    while ((pos = s.find(delimiter)) != std::string::npos) {
+        token = s.substr(0, pos);
+        tokens.push_back(token);
+        s.erase(0, (int)(pos + delimiter.length()));
+    }
+    tokens.push_back(s);
+
+    return tokens;
+}
+
 
 /// Taken from Kilfu0701@github
 std::string utf8ToSjis(const std::string& value)
@@ -178,11 +223,12 @@ void PickStringFrame::Confirm(wxCommandEvent& event)
         wxLogError("Load a translation file first!");
         return;
     }
-    try { 
+    try {
         myf->UpdateCurrentWord(std::stoi(std::string(app->frmStrFrame->txtStringSel->GetValue())) - 1);
         app->frmStrFrame = NULL;
         Close(true);
-    } catch(...) { 
+    }
+    catch (...) {
         wxLogError("Not a valid string");
     }
 }
@@ -194,35 +240,54 @@ void MyFrame::NextWord(wxCommandEvent& event)
     MyApp* app = &wxGetApp();
     if (datLoaded == true)
     {
-        // save temporary changes to memory
-        //wxLogError("%s", (app->txtTranslation->GetValue()));
-        std::string tmp_u8(app->txtTranslation->GetValue().ToUTF8());//utf8ToSjis(tmp_u8str);
-        //wxLogError("%s", wxString(tmp_u8.c_str()));
-        std::string tmp_sjis(utf8ToSjis(tmp_u8));
-        //wxLogError("%s", tmp_sjis);
-        for (int i = 0; i < wordList[curWord].translation.size(); i++)
-        {
-            wordList[curWord].translation[i] = (u8)0;
+        if(app->appMode == MODE_DAT){
+            // save temporary changes to memory
+            std::string tmp_u8(app->txtTranslation->GetValue().ToUTF8());//utf8ToSjis(tmp_u8str);
+            std::string tmp_sjis(utf8ToSjis(tmp_u8));
+            for (int i = 0; i < wordList[curWord].translation.size(); i++)
+            {
+                wordList[curWord].translation[i] = (u8)0;
+            }
+            wordList[curWord].translation.clear();
+            for (int i = 0; i < strlen(tmp_sjis.c_str()); i++)
+            {
+                wordList[curWord].translation.push_back((u8)tmp_sjis[i]);
+            }
+            wordList[curWord].translation.push_back((u8)0);
+            //std::string s2(wordList[curWord].translation.data());
         }
-        wordList[curWord].translation.clear();
-        for (int i = 0; i < strlen(tmp_sjis.c_str()); i++)
-        {
-            wordList[curWord].translation.push_back((u8)tmp_sjis[i]);
+        else { // ARF file 
+            // TODO 
+
+
         }
-        wordList[curWord].translation.push_back((u8)0);
-
-        //std::string s2(wordList[curWord].translation.data());
-        //wxLogError("%s", s2);
-
         curWord++;
-        if (curWord == wordList.size())
-            curWord = 0;
-        while (wordList[curWord].complete == true) {
-            curWord++;
+        if(app->appMode == MODE_DAT){
             if (curWord == wordList.size())
                 curWord = 0;
         }
-        UpdateCurrentWord(curWord);
+        if (app->appMode == MODE_ARF){
+            if (curWord == app->strFiles.size())
+                curWord = 0;
+        }
+        //std::cout << "test1\n";
+        //std::cout << app->strFiles[curWord].fname << std::endl;
+        UpdateCurrentWord(curWord);        
+        //std::cout << "test2\n";
+        // Ensure we arent looking at an empty one
+        while ((app->txtOriginalText->GetValue() == ""))
+        {
+            curWord++;
+            if(app->appMode == MODE_DAT)
+                if (curWord == wordList.size())
+                    curWord = 0;
+            if (app->appMode == MODE_ARF)
+                if (curWord == app->strFiles.size())
+                    curWord = 0;
+            UpdateCurrentWord(curWord);
+
+        }
+        
     }
     else wxLogError("Load a translation file first!");
 }
@@ -233,32 +298,38 @@ void MyFrame::PrevWord(wxCommandEvent& event)
     MyApp* app = &wxGetApp();
 
     if (datLoaded == true) {
-        // save temporary changes to memory 
-        std::string tmp_u8(app->txtTranslation->GetValue().ToUTF8());//utf8ToSjis(tmp_u8str);
-        std::string tmp_sjis(utf8ToSjis(tmp_u8));
-
-        for (int i = 0; i < wordList[curWord].translation.size(); i++)
+        if(app->appMode == MODE_DAT)
         {
-            wordList[curWord].translation[i] = (u8)0;
-        }
-        wordList[curWord].translation.clear();
-        for (int i = 0; i < strlen(tmp_sjis.c_str()); i++)
-        {
-            wordList[curWord].translation.push_back((u8)tmp_sjis[i]);
-        }
-        wordList[curWord].translation.push_back((u8)0); // to force terminate it 
+            // save temporary changes to memory 
+            std::string tmp_u8(app->txtTranslation->GetValue().ToUTF8());//utf8ToSjis(tmp_u8str);
+            std::string tmp_sjis(utf8ToSjis(tmp_u8));
 
+            for (int i = 0; i < wordList[curWord].translation.size(); i++)
+            {
+                wordList[curWord].translation[i] = (u8)0;
+            }
+            wordList[curWord].translation.clear();
+            for (int i = 0; i < strlen(tmp_sjis.c_str()); i++)
+            {
+                wordList[curWord].translation.push_back((u8)tmp_sjis[i]);
+            }
+            wordList[curWord].translation.push_back((u8)0); // to force terminate it     
+        }
         // change display to next word 
         curWord--;
         if (curWord == -1)
-            curWord = wordList.size() - 1;
-        while (wordList[curWord].complete == true) {
+            if(app->appMode == MODE_DAT) curWord = wordList.size() - 1;
+            else curWord = app->strFiles.size() - 1;
+        UpdateCurrentWord(curWord);
+        // Ensure we arent looking at an empty one
+        while (app->txtOriginalText->GetValue() == "")
+        {
             curWord--;
             if (curWord == -1)
-                curWord = wordList.size() - 1;
+                if(app->appMode == MODE_DAT) curWord = wordList.size() - 1;
+                else curWord = app->strFiles.size() - 1;
+            UpdateCurrentWord(curWord);
         }
-        // skip it if needed 
-        UpdateCurrentWord(curWord);
     }
     else wxLogError("Load a translation file first!");
 }
@@ -268,36 +339,112 @@ void MyFrame::UpdateCurrentWord(int wordNum)
 {
     MyApp* app = &wxGetApp();
     curWord = wordNum; // just in case. 
-    // set string count label, 
-    std::string s = "Current string: " + std::to_string(wordNum + 1) + " / " + std::to_string(wordList.size());
-    app->lblMainLabel->SetLabel(s);
+    
+    switch(app->appMode){
+        case MODE_DAT:{
+            // set string count label, 
+            std::string s = "Current string: " + std::to_string(wordNum + 1) + " / " + std::to_string(wordList.size());
+            app->lblMainLabel->SetLabel(s);
+            // decode and set tl text 
+            // original text box and bytesz label,
+            s = sjisToUtf8(std::string(wordList[wordNum].text.data()));
+            app->txtOriginalText->ChangeValue(wxString::FromUTF8(s.c_str()));
+            app->lblOriginalSizeLabel->SetLabel("Size: " + std::to_string(wordList[wordNum].bytesize));
 
-    // decode and set tl text 
-    // original text box and bytesz label,
-    s = sjisToUtf8(std::string(wordList[wordNum].text.data()));
-    app->txtOriginalText->ChangeValue(wxString::FromUTF8(s.c_str()));
-    app->lblOriginalSizeLabel->SetLabel("Size: " + std::to_string(wordList[wordNum].bytesize));
+            // tled text box and bytesz label,
+            s = sjisToUtf8(std::string(wordList[wordNum].translation.data()));
+            app->txtTranslation->ChangeValue(wxString::FromUTF8(s.c_str()));
+            // get converted size from text 
+            std::string tmp_u8str(app->txtTranslation->GetValue().ToUTF8());
+            std::string tmp_sjis = utf8ToSjis(tmp_u8str);
+            app->lblTranslationSize->SetLabel("Size: " + std::to_string(tmp_sjis.length()));
+            // < number of duplicates >
+            app->lblDuplicates->SetLabel("Duplicates: " + std::to_string(wordList[wordNum].locs.size() - 1));
+            // bad flag, ...
+            app->chkMarkBad->SetValue(wordList[wordNum].bad);
+            app->chkMarkComplete->SetValue(wordList[wordNum].complete);
+            //std::cout << "bad: " << std::to_string(wordList[wordNum].bad) << " compl: " << std::to_string(wordList[wordNum].complete) << "\n";
+            break;
+        }
+        case MODE_ARF: {
+            // set string count label, 
+            std::string s = "Current string: " + app->strFiles[curWord].fname + " (" + std::to_string(app->strFiles[curWord].lines.size()) + ")";
+            app->lblMainLabel->SetLabel(s);
+            std::vector<std::string> sjislines;
+            for(int i = 0; i < app->strFiles[curWord].lines.size(); i++)
+            {
+                app->strFiles[curWord].lines[i] = ReplaceString(app->strFiles[curWord].lines[i],
+                    "[0]\n", "\n");
+                sjislines.push_back(utf8ToSjis(app->strFiles[curWord].lines[i]));
+            }
+            
+            std::string finalstr = "  "; // wait!!! append \n every 40 chars 
+            int bc = 2;
+            for(int i = 0; i < sjislines.size()-1; i++){
+                //bc = 2;
+                for(int j = 0; j < sjislines[i].length(); j++){
+                    if ((u8)sjislines[i][j] < (u8)0x20) {
+                        if(sjislines[i][j] == 10) {
+                            //if(j != sjislines[i].length() - 1){
+                            finalstr += "[0]\n";
+                                //bc = 0;
+                            //}
+                        }
+                        else finalstr += "[" + std::to_string((int)sjislines[i][j]) + "]";
+                    }
+                    else if (sjislines[i][j] < 0x80) { // ascii 
+                        finalstr += sjislines[i][j];
+                        bc++;
+                    }
+                    else {
+                        finalstr += sjislines[i][j];
+                        finalstr += sjislines[i][j+1];
+                        j++;
+                        bc += 2;
+                    }
+                    if ((bc > 27)){ 
+                        if (sjislines[i][j+2] == 0x42){
+                            bc -= 2;
+                        }
+                        else if (sjislines[i][j+2] == 0x48){
+                            bc -= 2;
+                        }
+                        else { 
+                            finalstr += '\n'; 
+                            bc = 0;
+                        } 
+                    }
+                }
+                finalstr += "  ";
+                bc = 2;
+            }
+            std::string newfinal(sjisToUtf8(finalstr));
+            std::cout << newfinal << std::endl;
+            app->txtOriginalText->ChangeValue(wxString::FromUTF8(newfinal.c_str()));
 
-    // tled text box and bytesz label,
-    s = sjisToUtf8(std::string(wordList[wordNum].translation.data()));
-    app->txtTranslation->ChangeValue(wxString::FromUTF8(s.c_str()));
-    // get converted size from text 
-    std::string tmp_u8str(app->txtTranslation->GetValue().ToUTF8());
-    std::string tmp_sjis = utf8ToSjis(tmp_u8str);
-    app->lblTranslationSize->SetLabel("Size: " + std::to_string(tmp_sjis.length()));
-    // < number of duplicates >
-    app->lblDuplicates->SetLabel("Duplicates: " + std::to_string(wordList[wordNum].locs.size()-1));
-    // bad flag, ...
-    app->chkMarkBad->SetValue(wordList[wordNum].bad);
-    app->chkMarkComplete->SetValue(wordList[wordNum].complete);
-    //std::cout << "bad: " << std::to_string(wordList[wordNum].bad) << " compl: " << std::to_string(wordList[wordNum].complete) << "\n";
+            app->lblOriginalSizeLabel->SetLabel("Size: " + std::to_string(app->strFiles[wordNum].length));
+            
+            break;
+        }
+
+    }
+
+    
 }
 
 
+STRFile::STRFile()
+{
+    fname = "";
+    offset = 0;
+    length = 0;
+}
 
 void MyFrame::LoadDB(wxCommandEvent& e)
 {
-    wxFileDialog openFileDialog(this, _("Open translation .DAT file"), "", "", "DAT files (*.dat)|*.dat",
+    MyApp* app = &wxGetApp();
+    
+    wxFileDialog openFileDialog(this, _("Open translation .DAT/.ARF file"), "", "", "DAT/ARF files (*.dat;*.arf)|*.dat;*.arf",
         wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
     if (openFileDialog.ShowModal() == wxID_CANCEL)
@@ -318,12 +465,105 @@ void MyFrame::LoadDB(wxCommandEvent& e)
     is.close();
 
     // check header 
+    bool isTldat = true;
     char hdr[5] = { 'T', 'L', 'D', 'A', 'T' };
     for (int i = 0; i < 5; i++) {
         if (buffer[i] != hdr[i]) {
-            wxLogError("Database error!\nDatabase is corrupt.");
-            return;
+            isTldat = false;
+            //wxLogError("Database error!\nDatabase is corrupt.");
+            //return;
         }
+    }
+    // #struct ARFFileHeader { 
+    //     #    char name[13];     : (12+null) (bytes between 0 and index 13 are junk)
+    //     #    u8 file_type;      : 00 is lzss, 01 is binary, 02 is uncompressed 
+    //     #    u16 uncomp_size;
+    //     #    u16 compr_size;
+    //     #    u24 file_offset;
+    //     #    u16 nullterm = 0;
+    //     #};
+    if(!isTldat){
+        // try ARF
+        // 1. Get number of files 
+        app->numStrFiles = (u8)buffer[0] + ((u8)buffer[1] << 8);
+        int bc = 2;
+        // 2. Populate "arf database"
+        app->arfHeaderOffset = (app->numStrFiles * 22) + 2;
+        //app->strFiles.resize(app->numStrFiles);
+        for(int i = 0; i < app->numStrFiles; i++){
+            STRFile f = STRFile();
+            app->strFiles.push_back(f);
+            /// get file names 
+            std::string _fn = "";
+            for(int _c = 0; _c < 12; _c++){
+                _fn += buffer[bc + _c];
+            }
+            app->strFiles[i].fname = _fn;
+            bc += 13;
+            // file type 
+            if((u8)buffer[bc] == (u8)0){
+                wxLogError("LZSS string found - is this a translation file?");
+                return;
+            }
+            app->strFiles[i].encoding = (u8)buffer[bc];
+            bc ++;
+            // uncompressed size 
+            int ucsz = (u8)buffer[bc] + ((u8)buffer[bc+1]<<8);
+            app->strFiles[i].length = ucsz;
+            bc += 2; 
+            // compressed size 
+            bc += 2;
+            /// get file offsets 
+            app->strFiles[i].offset = (u8)buffer[bc] + ((u8)buffer[bc+1]<<8) + ((u8)buffer[bc+2]<<16);
+            std::cout << app->strFiles[i].fname << " " << ucsz << " " << std::hex << app->strFiles[i].offset << std::endl;
+            bc += 4;
+
+            /// and get the bytes 
+            //wxLogError("%d", (int)app->strFiles[i].length); // bug of length 0? 
+            for(int j = app->strFiles[i].offset; j < (app->strFiles[i].offset + ucsz); j++){
+                app->strFiles[i].bytes.push_back(buffer[j]);
+            }
+
+        }
+
+        app->appMode = MODE_ARF;
+        datLoaded = true;
+        for(int i = 0; i < app->strFiles.size(); i++){
+            // parse ENTIRE file, replacing non-valid bytes with [xn] codes
+            app->strFiles[i].lines.clear();
+            std::string tmp = "";
+            int _sct = 0;
+            for(int _i = 0; _i < app->strFiles[i].length; _i++) {
+                if (app->strFiles[i].bytes[_i] == 0) {
+                    tmp += "[0]\n";
+                    tmp = std::string(sjisToUtf8(tmp));
+                    app->strFiles[i].lines.push_back(tmp);
+                    tmp = "";
+                    //std::cout << app->strFiles[i].lines[_sct] << std::endl;
+                    _sct++;
+                } 
+                else if(app->strFiles[i].bytes[_i] == 0x10){
+                    tmp += "[10]";
+                } else if(app->strFiles[i].bytes[_i] == 0x11){
+                    tmp += "[11]";
+                } else if(app->strFiles[i].bytes[_i] == 0x12){
+                    tmp += "[12]";
+                }
+                else { 
+                    tmp += app->strFiles[i].bytes[_i];
+                }
+            }
+            // This will save the bytes at the end of the file without making a string out of them. 
+            if (tmp.length() > 0) {
+                app->strFiles[i].lines.push_back(tmp);
+            }
+        }
+        UpdateCurrentWord(70);
+        
+        wxMessageDialog* arfmsg = new wxMessageDialog(this, "ARF bundle loaded OK!");
+        arfmsg->ShowModal();
+
+        return;
     }
 
     // clean 
@@ -392,11 +632,12 @@ void MyFrame::LoadDB(wxCommandEvent& e)
 
         byte_it += 2;
     }
+    
+    app->appMode = MODE_DAT;
 
-    MyApp* app = &wxGetApp();
     app->chkMarkBad->Enable();
     app->chkMarkComplete->Enable();
-
+    
     // wordList is fully populated now.
     UpdateCurrentWord(0);
 
@@ -443,16 +684,79 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title)
 
 }
 
-
 void MyFrame::UpdateTlByteCount(wxCommandEvent& e)
 {
     MyApp* app = &wxGetApp();
+    
+    long pos = app->txtTranslation->GetInsertionPoint();
 
-    std::string tmp_u8str(app->txtTranslation->GetValue().ToUTF8());
-    std::string tmp_sjis = utf8ToSjis(tmp_u8str);
+        /*
+    // convert to sjis 
+    std::string tmp_sjis = utf8ToSjis(std::string(app->txtTranslation->GetValue().ToUTF8()));
+    // replace [0] with 0 
+    tmp_sjis = ReplaceString(tmp_sjis, "[0]", "");
+    tmp_sjis = ReplaceString(tmp_sjis, "[10]", "\x10");
+    tmp_sjis = ReplaceString(tmp_sjis, "[11]", "\x11");
+    tmp_sjis = ReplaceString(tmp_sjis, "[12]", "\x12");
+    tmp_sjis += app->strFiles[curWord].lines[app->strFiles[curWord].lines.size()-1];
+    std::vector<char> c; 
+    for(int i = 0; i < tmp_sjis.length(); i++){
+        if(tmp_sjis[i] == (u8)10)
+            c.push_back(0);
+        else 
+            c.push_back(tmp_sjis[i]);
+    }
+    tmp_sjis = std::string(c.begin(), c.end()); // this should save it all. 
+    */
+    // 1 get all strings as a list 
+    // 2 get string lengths from jp text 
+    // 3 compare and pad with 0x20 if not equal 
+    // 4 reset input insertion point 
 
-    app->lblTranslationSize->SetLabel("Size: " + std::to_string(tmp_sjis.length()));
+    std::vector<std::string> new_strs = split(std::string(app->txtTranslation->GetValue().ToUTF8()), "[0]\n");
+    std::vector<std::string> jp_strs = split(std::string(app->txtOriginalText->GetValue().ToUTF8()), "[0]\n");
+    std::string finalstr = "";
+    
+    // string lengths 
+    //std::vector<int> strlens;
+    //for(int i = 0; i < jp_strs.size(); i++){
+    //    strlens.push_back(jp_strs[i].length());
+    //}
+    
 
+    // MY DOUBLE CHECKER!
+    for(int i = 0; i < new_strs.size(); i++)
+    {
+        while (new_strs[i].length() < jp_strs[i].length()){
+            new_strs[i] += " ";
+        }
+    }
+    bool szOver = false;
+    for(int i = 0; i < new_strs.size(); i++)
+    {
+        if (new_strs[i].length() > jp_strs[i].length())
+            szOver = true;
+    }       
+    if(szOver == true){
+        app->lblTranslationSize->SetLabel("SIZE OVER!");
+    } else { 
+        app->lblTranslationSize->SetLabel("Size OK.");
+    }
+    /// 
+
+
+    // Append a new line to everything except the last line 
+    int cc = 0;
+    for(int i = 0; i < new_strs.size() - 1; i++){
+        finalstr += new_strs[i] + "[0]\n";
+    }
+    app->txtTranslation->ChangeValue(finalstr);
+
+    // to double check, have to iterate everything 
+
+    //app->lblTranslationSize->SetLabel("Size: " + std::to_string(tmp_sjis.length() + app->strFiles[curWord].lines[app->strFiles[curWord].lines.size() - 1].length()));
+
+    app->txtTranslation->SetInsertionPoint(pos);
 }
 
 
@@ -510,85 +814,95 @@ void MyFrame::OpenStrSel(wxCommandEvent& WXUNUSED(e))
 void MyFrame::CommitChanges(wxCommandEvent& WXUNUSED(e))
 {
     MyApp* app = &wxGetApp();
-
-    // In case it has any changes: 
-    std::string tmp_u8(app->txtTranslation->GetValue().ToUTF8());//utf8ToSjis(tmp_u8str);
-    std::string tmp_sjis(utf8ToSjis(tmp_u8));
-    for (int i = 0; i < wordList[curWord].translation.size(); i++)
-    {
-        wordList[curWord].translation[i] = (u8)0;
+    
+    if(app->frmMainFrame->datLoaded == false){
+        wxLogError("Load a file first!");
+        return;
     }
-    wordList[curWord].translation.clear();
-    for (int i = 0; i < strlen(tmp_sjis.c_str()); i++)
-    {
-        wordList[curWord].translation.push_back((u8)tmp_sjis[i]);
-    }
-    wordList[curWord].translation.push_back((u8)0); // to force terminate it 
 
-    // before you save, make sure 
-    for (int f = 0; f < wordList.size(); f++) {
-        std::string tmp_sjis(wordList[f].translation.data());
-
-        if (wordList[f].bytesize != tmp_sjis.length()) {
-            wxLogError("You can't!\nString #%d has an invalid number of characters.", f+1);
-            return;
+    if(app->appMode == MODE_DAT) {
+        // In case it has any changes: 
+        std::string tmp_u8(app->txtTranslation->GetValue().ToUTF8());//utf8ToSjis(tmp_u8str);
+        std::string tmp_sjis(utf8ToSjis(tmp_u8));
+        for (int i = 0; i < wordList[curWord].translation.size(); i++)
+        {
+            wordList[curWord].translation[i] = (u8)0;
         }
-    }
-
-    // Recreate translation.dat file 
-    //# TLDAT header
-    //# bytect[2] \0 transl[bytect] \0 text[bytect] \0 bad[1] \0 complete[1] \0 locct[1] \0 locs[ [disk[1] addr[3]] ][locct] \0d \0a
-    std::vector<char> outbytes;
-    outbytes.push_back((u8)'T');
-    outbytes.push_back((u8)'L');
-    outbytes.push_back((u8)'D');
-    outbytes.push_back((u8)'A');
-    outbytes.push_back((u8)'T');
-    for (int i = 0; i < wordList.size(); i++) {
-        // bytect[2]
-        outbytes.push_back((u8)((wordList[i].bytesize & 0xff00) >> 8));
-        outbytes.push_back((u8)(wordList[i].bytesize & 0xff));
-        outbytes.push_back(NULLBYTE);
-        for (int sl = 0; sl < wordList[i].bytesize; sl++) {
-            outbytes.push_back((u8)wordList[i].translation[sl]);
+        wordList[curWord].translation.clear();
+        for (int i = 0; i < strlen(tmp_sjis.c_str()); i++)
+        {
+            wordList[curWord].translation.push_back((u8)tmp_sjis[i]);
         }
-        outbytes.push_back(NULLBYTE);
-        for (int sl = 0; sl < wordList[i].bytesize; sl++) {
-            outbytes.push_back((u8)wordList[i].text[sl]);
+        wordList[curWord].translation.push_back((u8)0); // to force terminate it 
+
+        // before you save, make sure 
+        for (int f = 0; f < wordList.size(); f++) {
+            std::string tmp_sjis(wordList[f].translation.data());
+
+            if (wordList[f].bytesize != tmp_sjis.length()) {
+                wxLogError("You can't!\nString #%d has an invalid number of characters.", f + 1);
+                return;
+            }
         }
-        outbytes.push_back(NULLBYTE);
-        outbytes.push_back((u8)wordList[i].bad);
-        outbytes.push_back(NULLBYTE);
-        outbytes.push_back((u8)wordList[i].complete);
-        outbytes.push_back(NULLBYTE);
-        outbytes.push_back((u8)wordList[i].locs.size());
-        outbytes.push_back(NULLBYTE);
-        for (int sl = 0; sl < wordList[i].locs.size(); sl++) {
-            outbytes.push_back((u8)wordList[i].locs[sl].disk);
-            outbytes.push_back((u8)((wordList[i].locs[sl].address & 0xff0000) >> 16));
-            outbytes.push_back((u8)((wordList[i].locs[sl].address & 0xff00) >> 8));
-            outbytes.push_back((u8)((wordList[i].locs[sl].address & 0xff)));
+
+        // Recreate translation.dat file 
+        //# TLDAT header
+        //# bytect[2] \0 transl[bytect] \0 text[bytect] \0 bad[1] \0 complete[1] \0 locct[1] \0 locs[ [disk[1] addr[3]] ][locct] \0d \0a
+        std::vector<char> outbytes;
+        outbytes.push_back((u8)'T');
+        outbytes.push_back((u8)'L');
+        outbytes.push_back((u8)'D');
+        outbytes.push_back((u8)'A');
+        outbytes.push_back((u8)'T');
+        for (int i = 0; i < wordList.size(); i++) {
+            // bytect[2]
+            outbytes.push_back((u8)((wordList[i].bytesize & 0xff00) >> 8));
+            outbytes.push_back((u8)(wordList[i].bytesize & 0xff));
+            outbytes.push_back(NULLBYTE);
+            for (int sl = 0; sl < wordList[i].bytesize; sl++) {
+                outbytes.push_back((u8)wordList[i].translation[sl]);
+            }
+            outbytes.push_back(NULLBYTE);
+            for (int sl = 0; sl < wordList[i].bytesize; sl++) {
+                outbytes.push_back((u8)wordList[i].text[sl]);
+            }
+            outbytes.push_back(NULLBYTE);
+            outbytes.push_back((u8)wordList[i].bad);
+            outbytes.push_back(NULLBYTE);
+            outbytes.push_back((u8)wordList[i].complete);
+            outbytes.push_back(NULLBYTE);
+            outbytes.push_back((u8)wordList[i].locs.size());
+            outbytes.push_back(NULLBYTE);
+            for (int sl = 0; sl < wordList[i].locs.size(); sl++) {
+                outbytes.push_back((u8)wordList[i].locs[sl].disk);
+                outbytes.push_back((u8)((wordList[i].locs[sl].address & 0xff0000) >> 16));
+                outbytes.push_back((u8)((wordList[i].locs[sl].address & 0xff00) >> 8));
+                outbytes.push_back((u8)((wordList[i].locs[sl].address & 0xff)));
+            }
+            outbytes.push_back((u8)0x0d);
+            outbytes.push_back((u8)0x0a);
         }
-        outbytes.push_back((u8)0x0d);
-        outbytes.push_back((u8)0x0a);
+
+        std::ofstream os(currentFilePath, std::ios_base::binary);
+        if (!os) { wxLogError("Cannot write to DB!\nIs it read only?"); return; }
+        os.write(outbytes.data(), outbytes.size());
+        os.close();
+
+        // update %
+        int tc = 0;
+        for (int i = 0; i < wordList.size(); i++) {
+            if (wordList[i].complete == true) tc++;
+        }
+        float pct = (float)tc;
+        float den = (float)wordList.size();
+        pct = (pct / den) * 100.0f;
+        int _p = (int)(pct);
+        SetStatusText("Current progress: " + std::to_string(_p) + "%");
+        
     }
+    else { 
 
-    std::ofstream os(currentFilePath, std::ios_base::binary);
-    if (!os) { wxLogError("Cannot write to DB!\nIs it read only?"); return; }
-    os.write(outbytes.data(), outbytes.size());
-    os.close();
-
-    // update %
-    int tc = 0;
-    for(int i = 0; i < wordList.size(); i++){
-        if(wordList[i].complete==true) tc++;
     }
-    float pct = (float)tc;
-    float den = (float)wordList.size();
-    pct = (pct / den) * 100.0f;
-    int _p = (int)(pct);
-    SetStatusText("Current progress: " + std::to_string(_p) + "%");
-
     wxLogError("Complete");
 }
 
@@ -606,33 +920,36 @@ bool MyApp::OnInit()
     // create the main application window
     frmMainFrame = new MyFrame("Sword World PC Translation Tool");
     //frmMainFrame->myApp = this;
-    wxSize _sz = wxSize(640, 440);
+    wxSize _sz = wxSize(540, 640);
     frmMainFrame->SetSize(_sz);
 
     pnlMainPanel = new wxPanel(frmMainFrame, wxID_ANY);
 
+    wxFont fwfont(14, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+    
     wxPoint ptMainLblPt = wxPoint(10, 10);
     lblMainLabel = new wxStaticText(pnlMainPanel, wxID_ANY, "Current string: 0 / 0", ptMainLblPt);
-    lblDuplicates = new wxStaticText(pnlMainPanel, wxID_ANY, "Total # duplicates: 0", wxPoint(480, 20));
+    lblDuplicates = new wxStaticText(pnlMainPanel, wxID_ANY, "Total # duplicates: 0", wxPoint(330, 20));
 
     wxStaticText* lblOrigTxtLabel = new wxStaticText(pnlMainPanel, wxID_ANY, "Original text:", wxPoint(10, 30));
-    txtOriginalText = new wxTextCtrl(pnlMainPanel, wxID_ANY, "", wxPoint(10, 50), wxSize(600, 80), wxTE_READONLY | wxTE_MULTILINE | wxTE_WORDWRAP);
-    //txtOriginalText->SetDefaultStyle(wxTextAttr())
-    lblOriginalSizeLabel = new wxStaticText(pnlMainPanel, wxID_ANY, "Size: 0", wxPoint(550, 132));
+    txtOriginalText = new wxTextCtrl(pnlMainPanel, wxID_ANY, "", wxPoint(50, 50), wxSize(400, 140), wxTE_READONLY | wxTE_MULTILINE | wxTE_CHARWRAP);
+    lblOriginalSizeLabel = new wxStaticText(pnlMainPanel, wxID_ANY, "Size: 0", wxPoint(350, 132+60));
+    txtOriginalText->SetFont(fwfont);
 
-    wxStaticText* lblTranslationLabel = new wxStaticText(pnlMainPanel, wxID_ANY, "Translation:", wxPoint(10, 140));
-    txtTranslation = new wxTextCtrl(pnlMainPanel, wxID_ANY, "", wxPoint(10, 160), wxSize(600, 80), wxTE_MULTILINE | wxTE_WORDWRAP);
-    lblTranslationSize = new wxStaticText(pnlMainPanel, wxID_ANY, "Size: 0", wxPoint(550, 240));
+    wxStaticText* lblTranslationLabel = new wxStaticText(pnlMainPanel, wxID_ANY, "Translation:", wxPoint(10, 140+100));
+    txtTranslation = new wxTextCtrl(pnlMainPanel, wxID_ANY, "", wxPoint(50, 160+100), wxSize(400, 140), wxTE_MULTILINE | wxTE_CHARWRAP);
+    lblTranslationSize = new wxStaticText(pnlMainPanel, wxID_ANY, "Size: 0", wxPoint(350, 240+160));
+    txtTranslation->SetFont(fwfont);
 
-    chkMarkBad = new wxCheckBox(pnlMainPanel, wxID_ANY, "Flag bad string", wxPoint(10, 250));
+    chkMarkBad = new wxCheckBox(pnlMainPanel, wxID_ANY, "Flag bad string", wxPoint(10, 250+140));
     chkMarkBad->Disable();
-    chkMarkComplete = new wxCheckBox(pnlMainPanel, wxID_ANY, "Mark complete (don't show again)", wxPoint(10, 270));
+    chkMarkComplete = new wxCheckBox(pnlMainPanel, wxID_ANY, "Mark complete (don't show again)", wxPoint(10, 270+140));
     chkMarkComplete->Disable();
 
-    btnBack = new wxButton(pnlMainPanel, wxID_ANY, "<<", wxPoint(160, 300));
-    btnNext = new wxButton(pnlMainPanel, wxID_ANY, ">>", wxPoint(440, 300));
-    btnCommit = new wxButton(pnlMainPanel, wxID_ANY, ".       Commit       .\n", wxPoint(280, 275));
-    btnSelectString = new wxButton(pnlMainPanel, wxID_ANY, "Goto string...", wxPoint(10, 320));
+    btnBack = new wxButton(pnlMainPanel, wxID_ANY, "<<", wxPoint(160, 300+200));
+    btnNext = new wxButton(pnlMainPanel, wxID_ANY, ">>", wxPoint(440, 300+200));
+    btnCommit = new wxButton(pnlMainPanel, wxID_ANY, ".       Commit       .\n", wxPoint(280, 275+200));
+    btnSelectString = new wxButton(pnlMainPanel, wxID_ANY, "Goto string...", wxPoint(10, 320+200));
 
     //btnCommit->Bind(wxEVT_BUTTON, &MyFrame::OnQuit, frmMainFrame);
     btnBack->Bind(wxEVT_BUTTON, &MyFrame::PrevWord, frmMainFrame);
@@ -659,48 +976,48 @@ int MyApp::FilterEvent(wxEvent& event) {
     if (event.GetEventType() == wxEVT_KEY_DOWN) {
         wxKeyEvent& keyEvent = static_cast<wxKeyEvent&>(event);
         //wxLogMessage("Key pressed: %d", keyEvent.GetKeyCode());
-        if(keyEvent.GetKeyCode() == 308){
+        if (keyEvent.GetKeyCode() == 308) {
             shiftKey = true;
         }
-        if(keyEvent.GetKeyCode() == 314){
-            if(shiftKey)
+        if (keyEvent.GetKeyCode() == 314) {
+            if (shiftKey)
                 frmMainFrame->PrevWord(static_cast<wxCommandEvent&>(event));
         }
-        else if(keyEvent.GetKeyCode() == 316){
-            if(shiftKey)
+        else if (keyEvent.GetKeyCode() == 316) {
+            if (shiftKey)
                 frmMainFrame->NextWord(static_cast<wxCommandEvent&>(event));
         }
-        else if(keyEvent.GetKeyCode() == 66){//b = 66
-            if(shiftKey)
-                if(frmMainFrame->datLoaded){
+        else if (keyEvent.GetKeyCode() == 66) {//b = 66
+            if (shiftKey)
+                if (frmMainFrame->datLoaded) {
                     chkMarkBad->SetValue(!chkMarkBad->GetValue());
                     frmMainFrame->SetBad(static_cast<wxCommandEvent&>(event));
                 }
         }
-        else if(keyEvent.GetKeyCode() == 67){//c
-            if(shiftKey)
-                if(frmMainFrame->datLoaded){
+        else if (keyEvent.GetKeyCode() == 68) {//d
+            if (shiftKey)
+                if (frmMainFrame->datLoaded) {
                     chkMarkComplete->SetValue(!chkMarkComplete->GetValue());
                     frmMainFrame->SetComplete(static_cast<wxCommandEvent&>(event));
                 }
         }
-        else if(keyEvent.GetKeyCode() == 13){//enter
-            if(shiftKey)
-                if(frmMainFrame->datLoaded)
+        else if (keyEvent.GetKeyCode() == 13) {//enter
+            if (shiftKey)
+                if (frmMainFrame->datLoaded)
                     frmMainFrame->CommitChanges(static_cast<wxCommandEvent&>(event));
         }
-        else if (keyEvent.GetKeyCode() == 71){//g = 71
-            if(shiftKey)
-                if(frmMainFrame->datLoaded)
+        else if (keyEvent.GetKeyCode() == 71) {//g = 71
+            if (shiftKey)
+                if (frmMainFrame->datLoaded)
                     frmMainFrame->OpenStrSel(static_cast<wxCommandEvent&>(event));
         }
-        
+
         //else if(keyEvent.GetKeyCode() == )
     }
     if (event.GetEventType() == wxEVT_KEY_UP) {
         wxKeyEvent& keyEvent = static_cast<wxKeyEvent&>(event);
         //wxLogMessage("Key pressed: %d", keyEvent.GetKeyCode());
-        if(keyEvent.GetKeyCode() == 308){
+        if (keyEvent.GetKeyCode() == 308) {
             shiftKey = false;
         }
     }

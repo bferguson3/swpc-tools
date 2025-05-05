@@ -19,6 +19,8 @@
 
 
 #define u8 unsigned char
+#define MODE_ARF 1 
+#define MODE_DAT 0
 
 class Location
 {
@@ -52,6 +54,21 @@ class TlWord
     private:
 };
 
+class STRFile 
+{
+    public:
+        STRFile();
+
+        std::vector<u8> bytes;
+        
+        std::string fname;
+        std::vector<std::string> lines;
+        std::vector<std::string> tl_lines;
+        u8 encoding = 0;
+        int offset = 0;
+        int length = 0;
+};
+
 
 // main frame
 class MyFrame : public wxFrame
@@ -77,6 +94,7 @@ class MyFrame : public wxFrame
 
         std::vector<char> translation_dat;
         std::vector<TlWord> wordList; 
+
         int curWord;
 
         std::string currentFilePath;
@@ -136,6 +154,12 @@ class MyApp : public wxApp
         wxButton* btnSelectString;
 
         bool shiftKey = false;
+
+        u8 appMode = 0;
+
+        int numStrFiles;
+        int arfHeaderOffset;
+        std::vector<STRFile> strFiles;
 
 };
 

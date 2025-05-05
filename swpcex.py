@@ -5,6 +5,7 @@ import os,sys,d88
  
  # DISK A
 ignore_ranges = [ 
+	'''
 (0, 0, 0x8370),
 (0, 0x8563,  0xedfe),
 #(0, 0x12b76, 0x2f2cb),
@@ -39,6 +40,7 @@ ignore_ranges = [
 (0,0xa034d, 0xa52d4),
 #(0,0xa0668, 0xa4d59),
 (0,0xa52d4, 0x133e11),
+'''
  ]
 '''
 ignore_ranges = [ 
@@ -66,7 +68,13 @@ word_list = []
 # E03F to EA9E+15
 # ED40 to FC4F
 
-sjisrange = [ (0x813f, 0x81ee+15), (0x823f, 0x84be+15), (0x873f, 0x9fee+15), (0xe03f, 0xea9e+15), (0xed40, 0xfc4f)]
+sjisrange = [ 
+	(0x813f, 0x81ee+15), 
+	(0x823f, 0x84be+15), 
+	(0x873f, 0x9fee+15), 
+	(0xe03f, 0xea9e+15), 
+	(0xed40, 0xfc4f)
+	]
 
 
 class loc: 
@@ -94,18 +102,18 @@ def load_all_disks():
 	print(numdisks, " disks found")
 	_disks = []
 	while numdisks > 0:
-		#f = open(sys.argv[numdisks], "rb")
-		#_by = f.read()
-		#f.close()
-		temp = d88.disk(sys.argv[numdisks])
+		f = open(sys.argv[numdisks], "rb")
+		_by = f.read()
+		f.close()
+		#temp = d88.disk(sys.argv[numdisks])
 		# append all bytes to the global group
-		#inbytes = []
-		inbytes = temp.HarvestBytes()
+		inbytes = []
+		#inbytes = temp.HarvestBytes()
 		#print(len(inbytes))
-		#_i = 0
-		#while _i < len(_by):
-		#	inbytes.append(_by[_i])
-		#	_i += 1
+		_i = 0
+		while _i < len(_by):
+			inbytes.append(_by[_i])
+			_i += 1
 		_disks.append(inbytes)
 		numdisks -= 1
 	return _disks 
@@ -161,53 +169,54 @@ if __name__ == "__main__":
 		wordisbad = False
 		wc=0
 		while i < len(inbytes):
-			# skip ranges that are defined as code regions
-			_r = 0
-			while _r < len(ignore_ranges):
-				if i >= ignore_ranges[_r][1] and i <= ignore_ranges[_r][2] and D == ignore_ranges[_r][0]:
-					i = ignore_ranges[_r][2]
-					break
-				_r += 1
-			# get the first byte that is non zero
-			while (inbytes[i] == 0):
-				i += 1
-			# add to the current word until we hit another 0 byte  
-			charct = 0
-			tempword = []
-			while (i < len(inbytes)):
-				if(inbytes[i] != 0):
-					tempword.append(inbytes[i])
-					charct += 1
-					i += 1
-				else:
-					break
-			#print(len(tempword))
-			try:
-				twb = bytes(tempword)
-				#print(twb.decode("shiftjis"), end="")
-				skip = False
-				if(twb.decode("shiftjis").strip() == ""):
-					skip = True 
-				if(len(twb) < 2):
-					skip = True
-				for tw in word_list:
-					if tw.text == twb:
-						skip = True
-						duct += 1
-						tw.locs.append(loc(disk=D, address = i - charct))
+			if(inbytes[i] != 0):
+				# skip ranges that are defined as code regions
+				#_r = 0
+				#while _r < len(ignore_ranges):
+				#	if i >= ignore_ranges[_r][1] and i <= ignore_ranges[_r][2] and D == ignore_ranges[_r][0]:
+				#		i = ignore_ranges[_r][2]
+				#		break
+				#	_r += 1
+				# get the first byte that is non zero
+				#while (inbytes[i] == 0):
+				#	i += 1
+				# add to the current word until we hit another 0 byte  
+				charct = 0
+				tempword = []
+				while (i < len(inbytes)):
+					if(inbytes[i] != 0):
+						tempword.append(inbytes[i])
+						charct += 1
+						i += 1
+					else:
 						break
-				if skip == False: 
-					_w = tlword()
-					_w.text = twb 
-					_w.translation = twb
-					# and new location 
-					_w.locs.append(loc(disk=D, address = i - charct))
-					_w.bytect = charct
-					word_list.append(_w) # and add to word list 
-					wc += 1
-			except UnicodeDecodeError: 
-				continue
-			
+				#print(len(tempword))
+				try:
+					twb = bytes(tempword)
+					#print(twb.decode("shiftjis"), end="")
+					skip = False
+					if(twb.decode("shiftjis").strip() == ""):
+						skip = True 
+					if(len(twb) < 2):
+						skip = True
+					for tw in word_list:
+						if tw.text == twb:
+							skip = True
+							duct += 1
+							tw.locs.append(loc(disk=D, address = i - charct))
+							break
+					if skip == False: 
+						_w = tlword()
+						_w.text = twb 
+						_w.translation = twb
+						# and new location 
+						_w.locs.append(loc(disk=D, address = i - charct))
+						_w.bytect = charct
+						word_list.append(_w) # and add to word list 
+						wc += 1
+				except UnicodeDecodeError: 
+					continue
+				
 			i += 1
 			#charct += 1
 		D += 1

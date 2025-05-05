@@ -3,4 +3,8 @@ swpctool
 **.o**
 swpctool.app
 ./enc
+./lzss
+stractor/
+strarea/
+strlctin/
 

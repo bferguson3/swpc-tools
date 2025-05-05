@@ -129,17 +129,17 @@ word_list = LoadTLDatFile(tldb)
 wordct = 0
 i = 0
 while i < len(word_list):
-    #if(word_list[i].complete == 1):
-    #    if(word_list[i].bad == 0):
-    wordct += 1
-    for ls in word_list[i].locs:
-        # well.. its always disk A for now 
-        bl = 0
-        _bloc = ls.address
-        _tlby = bytes(word_list[i].translation, encoding="shiftjis")
-        while bl < word_list[i].bytect:
-            raw_bytes[_bloc+bl] = _tlby[bl]
-            bl += 1
+    if(word_list[i].complete == 1):
+        if(word_list[i].bad == 0):
+            wordct += 1
+            for ls in word_list[i].locs:
+                # well.. its always disk A for now 
+                bl = 0
+                _bloc = ls.address
+                _tlby = bytes(word_list[i].translation, encoding="shiftjis")
+                while bl < word_list[i].bytect:
+                    raw_bytes[_bloc+bl] = _tlby[bl]
+                    bl += 1
     i += 1
 
 print("Reinserting", wordct, "words.")
