@@ -241,8 +241,8 @@ void MyFrame::NextWord(wxCommandEvent& event)
     MyApp* app = &wxGetApp();
     if (datLoaded == true)
     {
-       
-         ParseStrFiles();
+        ApplyTranslation();
+        //ParseStrFiles();
             // FILE WILL NOT BE WRITTEN UNTIL CTRL ENTER 
         
         curWord++;
@@ -647,6 +647,10 @@ void MyFrame::LoadDB(wxCommandEvent& e)
             //return;
         }
     }
+
+    app->strFiles.clear();
+    
+
     // #struct ARFFileHeader { 
     //     #    char name[13];     : (12+null) (bytes between 0 and index 13 are junk)
     //     #    u8 file_type;      : 00 is lzss, 01 is binary, 02 is uncompressed 
@@ -656,7 +660,6 @@ void MyFrame::LoadDB(wxCommandEvent& e)
     //     #    u16 nullterm = 0;
     //     #};
     if (!isTldat) {
-        app->strFiles.clear();
         // try ARF
         // 1. Get number of files 
         app->numStrFiles = (u8)buffer[0] + ((u8)buffer[1] << 8);
@@ -857,8 +860,10 @@ void MyFrame::UpdateTlByteCount(wxCommandEvent& e)
         for (int i = 0; i < new_strs.size(); i++)
         {
             new_strs[i] = ReplaceString(new_strs[i], "\x81\x66", "'");
-            while (new_strs[i].length() < jp_strs[i].length()) {
-                new_strs[i] += " ";
+            if(app->isPasting == false){
+                while (new_strs[i].length() < jp_strs[i].length()) {
+                    new_strs[i] += " ";
+                }
             }
         }
 
@@ -877,7 +882,7 @@ void MyFrame::UpdateTlByteCount(wxCommandEvent& e)
                 //std::cout << std::to_string(jp_strs[i][a]) << ",";
             }
             //std::cout << std::endl;
-            if (bc != cc) {
+            if (bc >  cc) {
                 app->lblTranslationSize->SetLabel("Size over on line" + std::to_string(i));
                 //wxLogError("need %d got %d", bc, cc);
             }
@@ -1122,8 +1127,8 @@ void MyFrame::CommitChanges(wxCommandEvent& WXUNUSED(e))
             outbytes.push_back((u8)app->strFiles[c].encoding);
             outbytes.push_back((u8)((app->strFiles[c].length & 0xff)));
             outbytes.push_back((u8)((app->strFiles[c].length & 0xff00) >> 8));
-            outbytes.push_back((u8)((app->strFiles[c].length & 0xff)));
-            outbytes.push_back((u8)((app->strFiles[c].length & 0xff00) >> 8));
+            outbytes.push_back((u8)((app->strFiles[c].compr_length & 0xff)));
+            outbytes.push_back((u8)((app->strFiles[c].compr_length & 0xff00) >> 8));
             outbytes.push_back((u8)((app->strFiles[c].offset & 0xff)));
             outbytes.push_back((u8)((app->strFiles[c].offset & 0xff00) >> 8));
             outbytes.push_back((u8)((app->strFiles[c].offset & 0xff0000) >> 16));
@@ -1148,7 +1153,9 @@ void MyFrame::CommitChanges(wxCommandEvent& WXUNUSED(e))
         }
         wxLogError("%d written", bc);
 
-        std::string tf = split(currentFilePath, ".ARF")[0] + "_E.ARF";
+        std::string tf = split(currentFilePath, ".ARF")[0];// [0] + "_E.ARF";
+        if (tf[tf.length() - 1] != 'E') tf += "_E.ARF";
+        else tf += ".ARF";
         std::ofstream os(tf, std::ios_base::binary);
         if (!os) { wxLogError("Cannot write to DB!\nIs it read only?"); return; }
         os.write(outbytes.data(), outbytes.size());
@@ -1239,6 +1246,11 @@ int MyApp::FilterEvent(wxEvent& event) {
             if (frmMainFrame->datLoaded == true)
                 backspacing = true;
         }
+        if (keyEvent.GetKeyCode() == 86) {
+            if (shiftKey == true) {
+                isPasting = true;
+            }
+        }
         if (keyEvent.GetKeyCode() == 314) {
             if (shiftKey)
                 frmMainFrame->PrevWord(static_cast<wxCommandEvent&>(event));
@@ -1271,7 +1283,7 @@ int MyApp::FilterEvent(wxEvent& event) {
                 if (frmMainFrame->datLoaded)
                     frmMainFrame->OpenStrSel(static_cast<wxCommandEvent&>(event));
         }
-        else if (keyEvent.GetKeyCode() == 73) {//i
+        else if (keyEvent.GetKeyCode() == 73) {//i jklmnopqrstuv
             if (shiftKey)
                 chkMarkInsert->SetValue(!chkMarkInsert->GetValue());
         }
@@ -1283,6 +1295,7 @@ int MyApp::FilterEvent(wxEvent& event) {
         //wxLogMessage("Key pressed: %d", keyEvent.GetKeyCode());
         if (keyEvent.GetKeyCode() == 308) {
             shiftKey = false;
+            isPasting = false;
         }
     }
     return wxApp::FilterEvent(event);

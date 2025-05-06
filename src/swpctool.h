@@ -161,6 +161,7 @@ public:
 
     bool shiftKey = false;
     bool backspacing = false;
+    bool isPasting = false;
 
     u8 appMode = 0;
 
