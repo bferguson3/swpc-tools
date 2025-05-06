@@ -656,6 +656,7 @@ void MyFrame::LoadDB(wxCommandEvent& e)
     //     #    u16 nullterm = 0;
     //     #};
     if (!isTldat) {
+        app->strFiles.clear();
         // try ARF
         // 1. Get number of files 
         app->numStrFiles = (u8)buffer[0] + ((u8)buffer[1] << 8);
