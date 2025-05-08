@@ -81,14 +81,21 @@ while i < file_ct:
     e.get_file_loc()
     e.get_sizes()
     #if(e.compr_type == "lzss"):
-    if(e.compr_type == "hidden"):
-        print(e.fn, end=" ")
-        print(e.get_compr_type(), end = " | ")
-        print("size", e.decomp_size, "(extracted", e.compr_size, ")")
-        fby = inbytes[e.loc:e.loc+e.decomp_size]
-        f = open(e.fn[:12], "wb")
-        f.write(fby)
-        f.close()
+    #if(e.compr_type == "hidden"):
+    print(e.fn, end=" ")
+    print(e.get_compr_type(), end = " | ")
+    print("size", e.decomp_size, "(extracted", e.compr_size, ")")
+    fby = inbytes[e.loc:e.loc+e.decomp_size]
+    of = ""
+    if e.get_compr_type() == "lzss":
+        of += "compressed/"
+    elif e.get_compr_type() == "hidden":
+        of += "hidden/"
+    elif e.get_compr_type() == "uncompressed":
+        of += "uncompressed/"
+    f = open(of + e.fn[:12], "wb")
+    f.write(fby)
+    f.close()
     bc+=22
     i += 1
 

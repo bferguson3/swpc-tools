@@ -22,6 +22,18 @@
 #define MODE_ARF 1 
 #define MODE_DAT 0
 
+
+std::string ReplaceBadConversions(const std::string& s);
+void check_null(char c);
+std::string sjisToUtf8(const std::string& value);
+std::string utf8ToSjis(const std::string& value);
+std::vector<std::string> split(std::string s, std::string delimiter);
+std::string addNewlines(const std::string& text, int x);
+std::string ReplaceString(std::string subject, const char search,
+    const std::string& replace);
+std::string ReplaceString(std::string subject, const std::string& search,
+    const std::string& replace);
+
 class Location
 {
 public:
@@ -87,6 +99,7 @@ public:
     void NextWord(wxCommandEvent& event);
     void PrevWord(wxCommandEvent& event);
 
+    void UpdateTlByteCount();
     void UpdateTlByteCount(wxCommandEvent& e);
     void OpenStrSel(wxCommandEvent& e);
     void CommitChanges(wxCommandEvent& e);
@@ -95,6 +108,7 @@ public:
     void SetInsert(wxCommandEvent& e);
 
     void ParseStrFiles();
+    void SyncLinesOnly();
     void ApplyTranslation();
 
     std::vector<char> translation_dat;
