@@ -1,3 +1,4 @@
+
 #ifndef __SWPCTOOL_H__
 #define __SWPCTOOL_H__
 
@@ -19,7 +20,7 @@
 
 
 #define u8 unsigned char
-#define MODE_ARF 1 
+#define MODE_ARF 1
 #define MODE_DAT 0
 
 
@@ -89,7 +90,7 @@ class MyFrame : public wxFrame
 public:
     MyFrame(const wxString& title); // ctor(s)
 
-    void OnQuit(wxCommandEvent& event);     // event handlers 
+    void OnQuit(wxCommandEvent& event);     // event handlers
     void OnAbout(wxCommandEvent& event);    // (these functions should _not_ be virtual)
 
     void LoadDB(wxCommandEvent& event);
@@ -101,7 +102,10 @@ public:
 
     void UpdateTlByteCount();
     void UpdateTlByteCount(wxCommandEvent& e);
+
     void OpenStrSel(wxCommandEvent& e);
+    void OpenSearch(wxCommandEvent& e);
+
     void CommitChanges(wxCommandEvent& e);
     void SetBad(wxCommandEvent& e);
     void SetComplete(wxCommandEvent& e);
@@ -126,6 +130,23 @@ private:
     wxDECLARE_EVENT_TABLE();
 };
 
+class SearchFrame : public wxFrame {
+    public:
+        SearchFrame(const wxString& title);
+        void OnFrameClose(wxCommandEvent& event); // always need this on macos, doh
+        void Confirm(wxCommandEvent& event);    // find string function
+
+        wxPanel* pnlSearch;
+        wxStaticText* lblSearch;
+        wxTextEntry* txtSearchStr;
+        wxButton* btnOK;
+
+    private:
+        wxDECLARE_EVENT_TABLE();
+};
+
+
+
 class PickStringFrame : public wxFrame
 {
 public:
@@ -133,7 +154,7 @@ public:
 
     void OnFrameClose(wxCommandEvent& event); // always need this on macos, doh
 
-    void Confirm(wxCommandEvent& event); // goto string function
+    void Confirm(wxCommandEvent& event);    // goto string function
 
     wxPanel* pnlStrPanel;
     wxStaticText* lblStringLabel;
@@ -155,6 +176,7 @@ public:
     MyFrame* frmMainFrame;
     wxPanel* pnlMainPanel;
     PickStringFrame* frmStrFrame;
+    SearchFrame* frmSearch;
 
     wxStaticText* lblMainLabel;
     wxStaticText* lblDuplicates;
@@ -172,6 +194,7 @@ public:
     wxButton* btnNext;
     wxButton* btnCommit;
     wxButton* btnSelectString;
+    wxButton* btnSearch;
 
     bool shiftKey = false;
     bool backspacing = false;
@@ -199,8 +222,12 @@ enum
     swpctool_SetComplete = wxID_ANY,
     swpctool_SetBad = wxID_ANY,
     swpctool_Commit = wxID_ANY,
-    swpctool_SetInsert = wxID_ANY
+    swpctool_SetInsert = wxID_ANY,
+    swpctool_Search = wxID_ANY,
+    swpctool_CloseSearch = wxID_ANY,
+    swpctool_OpenSearch = wxID_ANY,
+    swpctool_OpenGoto = wxID_ANY,
 };
 
 
-#endif 
+#endif
