@@ -114,18 +114,8 @@ for f in outfiles:
 outbytes = [ (file_ct & 0xff), (file_ct & 0xff00) >> 8]
 
 
-#ACTOR267.STR hidden | size 356 (extracted 426 )
-#LBRAD05A.STR hidden | size 783 (extracted 996 )
-#LOGCV00A.STR hidden | size 1253 (extracted 1652 )
-#LOTIS03A.STR hidden | size 357 (extracted 396 )
-
 for f in outfiles:
     # fix decomp size for binaries 
-#ACTOR023.STR hidden | size 558 (extracted 694 )
-#ACTOR085.STR hidden | size 635 (extracted 838 )
-#ACTOR091.STR hidden | size 213 (extracted 222 )
-#ACTOR093.STR hidden | size 307 (extracted 329 )
-#ACTOR104.STR hidden | size 363 (extracted 415 )
     if f.name == "ACTOR023.STR":
         f.uncomp_size = 694
     elif f.name == "ACTOR085.STR":
@@ -136,11 +126,6 @@ for f in outfiles:
         f.uncomp_size = 329
     elif f.name == "ACTOR104.STR":
         f.uncomp_size = 415
-#ACTOR110.STR hidden | size 822 (extracted 961 )
-#ACTOR159.STR hidden | size 579 (extracted 707 )
-#ACTOR161.STR hidden | size 499 (extracted 592 )
-#ACTOR168.STR hidden | size 254 (extracted 269 )
-#ACTOR264.STR hidden | size 37 (extracted 43 )
     elif f.name == "ACTOR110.STR":
         f.uncomp_size = 961
     elif f.name == "ACTOR159.STR":
@@ -151,10 +136,6 @@ for f in outfiles:
         f.uncomp_size = 269
     elif f.name == "ACTOR264.STR":
         f.uncomp_size = 43
-#ACTOR267.STR hidden | size 356 (extracted 426 )
-#LBRAD05A.STR hidden | size 783 (extracted 996 )
-#LOGCV00A.STR hidden | size 1253 (extracted 1652 )
-#LOTIS03A.STR hidden | size 357 (extracted 396 )
     elif f.name == "ACTOR267.STR":
         f.uncomp_size = 426
     elif f.name == "LBRAD05A.STR":
@@ -173,6 +154,20 @@ for f in outfiles:
             al+=1
         outbytes.append(0)
         fl+=1
+    #if f.name == "END.STR":
+    #    outbytes.append(0)
+    #elif f.name == "LEMA00A.STR":
+    #    outbytes.append(0)
+    #elif f.name == "LEMA00B.STR":
+    #    outbytes.append(0)
+    #elif f.name == "LEMA01A.STR":
+    #    outbytes.append(0)
+    #elif f.name == "LEMA02A.STR":
+    #    outbytes.append(0)
+    #elif f.name == "LEMA03A.STR":
+    #    outbytes.append(0)
+    if len(f.name) < 12:
+        outbytes.append(0)
     #outbytes.append(0)
     # ftype 
     outbytes.append(f.type & 0xff)
