@@ -1176,7 +1176,13 @@ void MyFrame::UpdateTlByteCount()
             int len_a = app->txtOriginalText->GetValue().length();
             int len_b = app->txtTranslation->GetValue().length();
             app->lblOriginalSizeLabel->SetLabel("Size: "+ std::to_string(len_a));
-            app->lblTranslationSize->SetLabel("Size: "+ std::to_string(len_b));
+            if(len_a >= len_b){
+                //app->lblTranslationSize->SetLabel("Size: "+ std::to_string(len_b));
+                app->lblTranslationSize->SetLabel("Size OK");
+            }
+            else {
+                app->lblTranslationSize->SetLabel("Size over!");
+            }
         }
     }
     catch (...) {
@@ -1292,6 +1298,9 @@ void MyFrame::CommitChanges(wxCommandEvent& WXUNUSED(e))
         for (int i = 0; i < strlen(tmp_sjis.c_str()); i++)
         {
             wordList[curWord].translation.push_back((u8)tmp_sjis[i]);
+        }
+        while(wordList[curWord].translation.size() < wordList[curWord].text.size() - 2){
+            wordList[curWord].translation.push_back((u8)0x20);
         }
         wordList[curWord].translation.push_back((u8)0); // to force terminate it 
 
