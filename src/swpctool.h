@@ -110,6 +110,7 @@ public:
     void SetBad(wxCommandEvent& e);
     void SetComplete(wxCommandEvent& e);
     void SetInsert(wxCommandEvent& e);
+    void SetSBMode(wxCommandEvent& e);
 
     void ParseStrFiles();
     void SyncLinesOnly();
@@ -189,6 +190,7 @@ public:
     wxCheckBox* chkMarkBad;
     wxCheckBox* chkMarkComplete;
     wxCheckBox* chkMarkInsert;
+    wxCheckBox* chkSingleByte;
 
     wxButton* btnBack;
     wxButton* btnNext;
@@ -199,13 +201,14 @@ public:
     bool shiftKey = false;
     bool backspacing = false;
     bool isPasting = false;
+    bool singleByteMode = false;
 
     u8 appMode = 0;
 
     int numStrFiles;
     int arfHeaderOffset;
     std::vector<STRFile> strFiles;
-
+private:
 };
 
 // IDs for the controls and the menu commands

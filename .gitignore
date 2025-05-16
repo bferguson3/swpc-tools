@@ -9,3 +9,5 @@ fix/
 lzss 
 swpcmanual*
 *.ARF
+*.dylib
+

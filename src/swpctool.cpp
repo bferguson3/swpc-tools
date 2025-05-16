@@ -212,17 +212,18 @@ void PickStringFrame::Confirm(wxCommandEvent& event)
     }
     try {
         int g = std::stoi(std::string(app->frmStrFrame->txtStringSel->GetValue())) - 1;
-        if (g < 0) { wxLogError("Use a positive number, man"); return; }
-        if (app->strFiles[g].encoding == 1) {
-            wxLogError("[#%d] %s is an encoded file; pick another!", g + 1, app->strFiles[g].fname);
-            return;
+        if (app->appMode == MODE_ARF){
+            if (g < 0) { wxLogError("Use a positive number, man"); return; }
+            if (app->strFiles[g].encoding == 1) {
+                wxLogError("[#%d] %s is an encoded file; pick another!", g + 1, app->strFiles[g].fname);
+                return;
 
+            }
+            if (app->strFiles[g].length == 1) {
+                wxLogError("[#%d] %s is an empty file, pick another!", g + 1, app->strFiles[g].fname);
+                return;
+            }
         }
-        if (app->strFiles[g].length == 1) {
-            wxLogError("[#%d] %s is an empty file, pick another!", g + 1, app->strFiles[g].fname);
-            return;
-        }
-
         myf->UpdateCurrentWord(g);
         app->frmStrFrame = NULL;
         Close(true);
@@ -573,6 +574,7 @@ void MyFrame::UpdateCurrentWord(int wordNum)
         app->chkMarkBad->SetValue(wordList[wordNum].bad);
         app->chkMarkComplete->SetValue(wordList[wordNum].complete);
         //std::cout << "bad: " << std::to_string(wordList[wordNum].bad) << " compl: " << std::to_string(wordList[wordNum].complete) << "\n";
+        UpdateTlByteCount();
         break;
     }
     case MODE_ARF: {
@@ -1049,145 +1051,132 @@ std::string ReplaceBadConversions(const std::string& s)
 void MyFrame::UpdateTlByteCount()
 {
     MyApp* app = &wxGetApp();
-
+    if(datLoaded == false){
+        return;
+    }
     long pos = app->txtTranslation->GetInsertionPoint();
 
-    // 1 get all strings as a list (utfw > uft8 > sjis)
-    // 2 get string lengths from jp text 
-    // 3 compare and pad with 0x20 if not equal 
-    // 4 reset input insertion point 
     try {
+        if(app->singleByteMode == false){
+            std::vector<std::string> new_strs = split(utf8ToSjis(std::string(app->txtTranslation->GetValue().ToUTF8())), "[0]\n");
+            std::vector<std::string> jp_strs = split(utf8ToSjis(std::string(app->txtOriginalText->GetValue().ToUTF8())), "[0]\n");
+            std::string finalstr = "";
 
-        std::vector<std::string> new_strs = split(utf8ToSjis(std::string(app->txtTranslation->GetValue().ToUTF8())), "[0]\n");
-        std::vector<std::string> jp_strs = split(utf8ToSjis(std::string(app->txtOriginalText->GetValue().ToUTF8())), "[0]\n");
-        std::string finalstr = "";
+            // string lengths 
+            std::vector<int> strlens;
+            for (int i = 0; i < jp_strs.size(); i++) {
 
-        // string lengths 
-        std::vector<int> strlens;
-        for (int i = 0; i < jp_strs.size(); i++) {
-
-            int ct = 0;
-            for (int f = 0; f < jp_strs[i].length(); f++) {
-                if ((u8)jp_strs[i][f] == (u8)10) {}
-                else if ((u8)jp_strs[i][f] == (u8)0x5b) {
-                    if ((u8)jp_strs[i][f + 2] == (u8)0x5d) {
-                        f += 2;
-                        ct++;
+                int ct = 0;
+                for (int f = 0; f < jp_strs[i].length(); f++) {
+                    if ((u8)jp_strs[i][f] == (u8)10) {}
+                    else if ((u8)jp_strs[i][f] == (u8)0x5b) {
+                        if ((u8)jp_strs[i][f + 2] == (u8)0x5d) {
+                            f += 2;
+                            ct++;
+                        }
+                        else if ((u8)jp_strs[i][f + 3] == (u8)0x5d) {
+                            f += 3;
+                            ct++;
+                        }
+                        else {
+                            ct++;
+                        }
                     }
-                    else if ((u8)jp_strs[i][f + 3] == (u8)0x5d) {
-                        f += 3;
+                    else
                         ct++;
-                    }
-                    else {
-                        ct++;
-                    }
                 }
-                else
-                    ct++;
+                strlens.push_back(ct);
             }
-            //ct++; // null term?
-
-            strlens.push_back(ct);
-            //strlens.push_back(jp_strs[i].length());
-        }
-
-        // MY DOUBLE CHECKER!
-        // For each string, append spaces until it matches the jp equivalent index 
-        for (int i = 0; i < new_strs.size(); i++)
-        {
-            new_strs[i] = ReplaceBadConversions(new_strs[i]);
-            jp_strs[i] = ReplaceBadConversions(jp_strs[i]);
-
-        }
-
-        app->lblTranslationSize->SetLabel("Size OK");
-        for (int i = 0; i < new_strs.size(); i++)
-        {   // to properly count, we only count non-newline charaters.
-            int bc = 0;
-            for (int a = 0; a < new_strs[i].length(); a++) {
-                if ((u8)new_strs[i][a] == (u8)10) { ; }
-                else if ((u8)new_strs[i][a] == (u8)0x5b) {
-                    if ((u8)new_strs[i][a + 2] == (u8)0x5d) {
-                        a += 2;
-                        bc++;
-                    }
-                    else if ((u8)new_strs[i][a + 3] == (u8)0x5d) {
-                        a += 3;
-                        bc++;
+            // MY DOUBLE CHECKER!
+            // For each string, append spaces until it matches the jp equivalent index 
+            for (int i = 0; i < new_strs.size(); i++)
+            {
+                new_strs[i] = ReplaceBadConversions(new_strs[i]);
+                jp_strs[i] = ReplaceBadConversions(jp_strs[i]);
+            }
+            app->lblTranslationSize->SetLabel("Size OK");
+            for (int i = 0; i < new_strs.size(); i++)
+            {   // to properly count, we only count non-newline charaters.
+                int bc = 0;
+                for (int a = 0; a < new_strs[i].length(); a++) {
+                    if ((u8)new_strs[i][a] == (u8)10) { ; }
+                    else if ((u8)new_strs[i][a] == (u8)0x5b) {
+                        if ((u8)new_strs[i][a + 2] == (u8)0x5d) {
+                            a += 2;
+                            bc++;
+                        }
+                        else if ((u8)new_strs[i][a + 3] == (u8)0x5d) {
+                            a += 3;
+                            bc++;
+                        }
+                        else
+                            bc++;
                     }
                     else
                         bc++;
                 }
-                else
-                    bc++;
+                if (bc > strlens[i]) {
+                    app->lblTranslationSize->SetLabel("Size over on line" + std::to_string(i));
+                    //wxLogError("Line %d: need %d, got %d", i, bc, strlens[i]);
+                }
             }
-            //bc++; // endl 
-
-            if (bc > strlens[i]) {
-                app->lblTranslationSize->SetLabel("Size over on line" + std::to_string(i));
-                //wxLogError("Line %d: need %d, got %d", i, bc, strlens[i]);
-            }
-        }
-
-        ///////////
-        // Split each new line at 28 chars < stop 
-
-        for (int i = 0; i < new_strs.size(); i++) {
-            int bc = 0;
-            //bool first = true;
-            //int cb = 25;
-            finalstr += new_strs[i];
-            for (int j = 0; j < new_strs[i].length(); j++) {
-                // count line lengths
-                if ((u8)new_strs[i][j] == (u8)0x5b) {
-                    if ((u8)new_strs[i][j + 2] == (u8)0x5d) {
-                        j += 2;
-                        bc++;
-                    }
-                    else if ((u8)new_strs[i][j + 3] == (u8)0x5d) {
-                        j += 3;
-                        bc++;
+            ///////////
+            for (int i = 0; i < new_strs.size(); i++) {
+                int bc = 0;
+                //bool first = true;
+                //int cb = 25;
+                finalstr += new_strs[i];
+                for (int j = 0; j < new_strs[i].length(); j++) {
+                    // count line lengths
+                    if ((u8)new_strs[i][j] == (u8)0x5b) {
+                        if ((u8)new_strs[i][j + 2] == (u8)0x5d) {
+                            j += 2;
+                            bc++;
+                        }
+                        else if ((u8)new_strs[i][j + 3] == (u8)0x5d) {
+                            j += 3;
+                            bc++;
+                        }
+                        else
+                            bc++;
                     }
                     else
                         bc++;
-                }
-                else
+                } // str break
+                //
+                while (bc < strlens[i]) {
+                    finalstr += " ";
                     bc++;
-            } // str break
-            //
-
-            while (bc < strlens[i]) {
-                finalstr += " ";
-                bc++;
+                }
+                if (i != (new_strs.size() - 1)) {
+                    finalstr += "[0]\n";
+                    //bc++;
+                }
             }
-            if (i != (new_strs.size() - 1)) {
-                finalstr += "[0]\n";
-                //bc++;
+            app->txtTranslation->ChangeValue(wxString::FromUTF8(sjisToUtf8(finalstr)));
+            // to double check, have to iterate everything 
+            if (app->chkMarkInsert->GetValue() == 1) {
+                if (app->backspacing == true) {
+                    if (pos > 0)
+                        pos--;
+                    app->backspacing = false;
+                }
+                app->txtTranslation->SetInsertionPoint(pos);
+                app->txtTranslation->SetSelection(pos, pos + 1);
+                if (app->txtTranslation->GetStringSelection() == "[")
+                    app->txtTranslation->SelectNone();
+                app->txtTranslation->ShowPosition(pos);
             }
-        }
-
-
-        //std::string s = sjisToUtf8(std::string(app->strFiles[curWord].lines[0].c_str()));
-        //app->txtTranslation->ChangeValue(wxString::FromUTF8(app->strFiles[curWord].lines[0].c_str()));
-        //app->txtTranslation->ChangeValue(wxString::FromUTF8(sjisToUtf8(app->strFiles[curWord].lines[0]).c_str()));// wxString(sjisToUtf8(utf8ToSjis(std::string(app->txtTranslation->GetValue().ToUTF8())))));
-        app->txtTranslation->ChangeValue(wxString::FromUTF8(sjisToUtf8(finalstr)));
-
-        // to double check, have to iterate everything 
-        //app->lblTranslationSize->SetLabel("Size: " + std::to_string(tmp_sjis.length() + app->strFiles[curWord].lines[app->strFiles[curWord].lines.size() - 1].length()));
-        if (app->chkMarkInsert->GetValue() == 1) {
-            if (app->backspacing == true) {
-                if (pos > 0)
-                    pos--;
-                app->backspacing = false;
+            else {
+                app->txtTranslation->SetInsertionPoint(pos);
             }
-            app->txtTranslation->SetInsertionPoint(pos);
-            app->txtTranslation->SetSelection(pos, pos + 1);
-            if (app->txtTranslation->GetStringSelection() == "[")
-                app->txtTranslation->SelectNone();
-            app->txtTranslation->ShowPosition(pos);
         }
         else {
-            app->txtTranslation->SetInsertionPoint(pos);
+            // single byte mode:
+            int len_a = app->txtOriginalText->GetValue().length();
+            int len_b = app->txtTranslation->GetValue().length();
+            app->lblOriginalSizeLabel->SetLabel("Size: "+ std::to_string(len_a));
+            app->lblTranslationSize->SetLabel("Size: "+ std::to_string(len_b));
         }
     }
     catch (...) {
@@ -1229,8 +1218,8 @@ void MyFrame::OnQuit(wxCommandEvent& WXUNUSED(event))
 
 void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
 {
-    wxMessageBox(wxString::Format("Welcome to the Sword World PC tool!\n\nThis is the swpctool wxWidgets sample\nrunning under" + wxGetOsDescription()),
-        "About Sword World PC Tool", wxOK | wxICON_INFORMATION, this);
+    wxMessageBox(wxString::Format("Welcome to the PC88/98 translation tool!\n\nThis is swpctool running under" + wxGetOsDescription()),
+        "About PC88/98 Translation Tool", wxOK | wxICON_INFORMATION, this);
 }
 
 void MyFrame::SetInsert(wxCommandEvent& WXUNUSED(e)) {
@@ -1275,6 +1264,12 @@ void MyFrame::OpenSearch(wxCommandEvent& WXUNUSED(e))
     app->frmSearch->Show(true);
 }
 
+void MyFrame::SetSBMode(wxCommandEvent& e)
+{
+    MyApp* app = &wxGetApp();
+    app->singleByteMode = !(app->singleByteMode);
+    UpdateTlByteCount();
+}
 
 void MyFrame::CommitChanges(wxCommandEvent& WXUNUSED(e))
 {
@@ -1448,7 +1443,7 @@ bool MyApp::OnInit()
     frmStrFrame = NULL;
     wxSetlocale(LC_ALL, "jp_JP");
     // create the main application window
-    frmMainFrame = new MyFrame("Sword World PC Translation Tool");
+    frmMainFrame = new MyFrame("PC88/98 Translation Tool");
     //frmMainFrame->myApp = this;
     wxSize _sz = wxSize(500, 640);
     frmMainFrame->SetSize(_sz);
@@ -1473,9 +1468,11 @@ bool MyApp::OnInit()
 
     chkMarkBad = new wxCheckBox(pnlMainPanel, wxID_ANY, "Flag (B)ad string", wxPoint(10, 250 + 160));
     chkMarkBad->Disable();
+    chkSingleByte = new wxCheckBox(pnlMainPanel, wxID_ANY, "Single byte mode", wxPoint(250, 250+160));
     chkMarkComplete = new wxCheckBox(pnlMainPanel, wxID_ANY, "Mark (D)one (don't show again)", wxPoint(10, 270 + 160));
     chkMarkComplete->Disable();
     chkMarkInsert = new wxCheckBox(pnlMainPanel, wxID_ANY, "(I)nsert mode", wxPoint(10, 290 + 160));
+    chkMarkInsert->Disable(); // never re-enable
 
     btnBack = new wxButton(pnlMainPanel, wxID_ANY, "<<", wxPoint(60, 300 + 200));
     btnNext = new wxButton(pnlMainPanel, wxID_ANY, ">>", wxPoint(340, 300 + 200));
@@ -1494,7 +1491,7 @@ bool MyApp::OnInit()
     chkMarkBad->Bind(wxEVT_CHECKBOX, &MyFrame::SetBad, frmMainFrame);
     chkMarkComplete->Bind(wxEVT_CHECKBOX, &MyFrame::SetComplete, frmMainFrame);
     chkMarkInsert->Bind(wxEVT_CHECKBOX, &MyFrame::SetInsert, frmMainFrame);
-
+    chkSingleByte->Bind(wxEVT_CHECKBOX, &MyFrame::SetSBMode, frmMainFrame);
 
     frmMainFrame->Show(true);  // and show it 
 
